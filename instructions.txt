@@ -1,0 +1,22 @@
+
+CricScore Pro - OBS Integration Guide
+=====================================
+
+Follow these steps to integrate the live scoreboard into your OBS stream:
+
+1. Launch CricScore Pro and start a match.
+2. Go to the "Scorer" console for your active match.
+3. Click the "OBS Overlay" button in the top right corner. This will open the minimal overlay in a new tab.
+4. Copy the URL of this new tab (it will look like: .../#/overlay/MATCH_ID).
+5. Open OBS Studio.
+6. In your Scene, add a new Source -> Browser.
+7. Name it "Cricket Scoreboard".
+8. Paste the copied URL into the URL field.
+9. Set the Width to your canvas width (e.g., 1920) and Height to 1080.
+10. Ensure "Shutdown source when not visible" is UNCHECKED to keep real-time updates alive.
+11. The background is already configured to be transparent. If it shows black, ensure "Use custom frame rate" is checked or refresh the cache of the browser source.
+12. Use the Scorer console in your main browser to update runs. The OBS overlay will update INSTANTLY (latency <50ms) as they share the same local storage state.
+
+Tips:
+- Use a dedicated monitor for the Scorer console.
+- If streaming from a different computer, you'll need to sync the state via a backend (this version uses LocalStorage for ultra-low latency on a single machine).

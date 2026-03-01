@@ -1,0 +1,5 @@
+{
+  "name": "CricScore Pro - Real-Time Scoring & OBS Overlay",
+  "description": "A professional-grade cricket scoring application with real-time match management, comprehensive ball-by-ball statistics, and a dedicated minimal OBS browser overlay for live streaming.",
+  "requestFramePermissions": []
+}
