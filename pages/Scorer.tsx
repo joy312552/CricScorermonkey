@@ -87,7 +87,12 @@ export const Scorer: React.FC = () => {
       total_overs: nextTotalOvers,
       current_over_balls: nextOverBalls,
       striker,
-      non_striker: nonStriker
+      non_striker: nonStriker,
+      striker_runs: (match.striker_runs || 0) + runs,
+      striker_balls: (match.striker_balls || 0) + (isLegalBall ? 1 : 0),
+      bowler_runs: (match.bowler_runs || 0) + runs,
+      bowler_wickets: (match.bowler_wickets || 0) + (isWicket ? 1 : 0),
+      bowler_overs: isLegalBall ? (match.bowler_overs || 0) + 0.1 : (match.bowler_overs || 0)
     };
 
     setMatch(optimisticMatch);

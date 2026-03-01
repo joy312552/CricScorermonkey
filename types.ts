@@ -58,6 +58,13 @@ export interface Match {
   striker?: string;
   non_striker?: string;
   bowler?: string;
+  striker_runs?: number;
+  striker_balls?: number;
+  non_striker_runs?: number;
+  non_striker_balls?: number;
+  bowler_wickets?: number;
+  bowler_runs?: number;
+  bowler_overs?: number;
   target?: number;
   created_by: string;
   status: 'live' | 'upcoming' | 'completed';

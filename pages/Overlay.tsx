@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMatchRealTime } from '../hooks/useMatchRealTime';
-import { Trophy, Swords, Users, BarChart3, TrendingUp, Target } from 'lucide-react';
+import { Trophy, Swords, BarChart3, TrendingUp, Target } from 'lucide-react';
+import { LowerScoreboard } from '../components/LowerScoreboard';
 
 export const Overlay: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -118,46 +119,25 @@ export const Overlay: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none font-sans">
-      {/* Main Score Bar (Always Visible) */}
-      <motion.div 
-        initial={{ y: 100 }}
-        animate={{ y: 0 }}
-        className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[1200px] h-24 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-full shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] flex items-center px-10 z-40"
-      >
-        {/* Team A */}
-        <div className="flex-1 flex items-center gap-4">
-          <div className="w-12 h-12 bg-white/5 rounded-full border border-white/10 flex items-center justify-center">
-            <Users className="w-6 h-6 text-emerald-500" />
-          </div>
-          <span className="text-2xl font-black text-white uppercase tracking-tighter">{match.team_a}</span>
-        </div>
-
-        {/* Score Center */}
-        <div className="flex flex-col items-center justify-center px-12 border-x border-white/10 h-full min-w-[300px]">
-          <div className="flex items-baseline gap-2">
-            <span className="text-5xl font-black text-white tracking-tighter">{match.total_runs}</span>
-            <span className="text-3xl font-black text-slate-600">/</span>
-            <span className="text-4xl font-black text-emerald-500 tracking-tighter">{match.total_wickets}</span>
-          </div>
-          <div className="text-sm font-black text-slate-500 uppercase tracking-[0.3em] mt-1">
-            Overs <span className="text-white">{match.total_overs.toFixed(1)}</span>
-          </div>
-        </div>
-
-        {/* Team B */}
-        <div className="flex-1 flex items-center justify-end gap-4">
-          <span className="text-2xl font-black text-white uppercase tracking-tighter">{match.team_b}</span>
-          <div className="w-12 h-12 bg-white/5 rounded-full border border-white/10 flex items-center justify-center">
-            <Users className="w-6 h-6 text-blue-500" />
-          </div>
-        </div>
-
-        {/* Live Indicator */}
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-red-600 text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse">
-          Live Broadcast
-        </div>
-      </motion.div>
+    <div className="fixed inset-0 overflow-hidden pointer-events-none font-sans bg-transparent">
+      {/* Professional Lower Scoreboard (Always Visible) */}
+      <LowerScoreboard 
+        teamA={match.team_a}
+        teamB={match.team_b}
+        striker={match.striker || 'Batter 1'}
+        nonStriker={match.non_striker || 'Batter 2'}
+        bowler={match.bowler || 'Bowler'}
+        score={`${match.total_runs}-${match.total_wickets}`}
+        overs={match.total_overs.toFixed(1)}
+        inning="1ST INNING"
+        strikerRuns={match.striker_runs || 0}
+        strikerBalls={match.striker_balls || 0}
+        nonStrikerRuns={match.non_striker_runs || 0}
+        nonStrikerBalls={match.non_striker_balls || 0}
+        bowlerWickets={match.bowler_wickets || 0}
+        bowlerRuns={match.bowler_runs || 0}
+        bowlerOvers={(match.bowler_overs || 0).toFixed(1)}
+      />
 
       {/* Dynamic Overlays */}
       <AnimatePresence mode="wait">

@@ -14,6 +14,16 @@ export const MatchService = {
         total_wickets: 0,
         total_overs: 0,
         current_over_balls: 0,
+        striker: 'Batter 1',
+        non_striker: 'Batter 2',
+        bowler: 'Bowler',
+        striker_runs: 0,
+        striker_balls: 0,
+        non_striker_runs: 0,
+        non_striker_balls: 0,
+        bowler_wickets: 0,
+        bowler_runs: 0,
+        bowler_overs: 0,
         status: 'live'
       }])
       .select()
@@ -111,7 +121,12 @@ export const MatchService = {
         total_overs: nextTotalOvers,
         current_over_balls: nextOverBalls,
         striker,
-        non_striker: nonStriker
+        non_striker: nonStriker,
+        striker_runs: (match.striker_runs || 0) + runs,
+        striker_balls: (match.striker_balls || 0) + (isLegalBall ? 1 : 0),
+        bowler_runs: (match.bowler_runs || 0) + runs,
+        bowler_wickets: (match.bowler_wickets || 0) + (isWicket ? 1 : 0),
+        bowler_overs: isLegalBall ? (match.bowler_overs || 0) + 0.1 : (match.bowler_overs || 0)
       })
       .eq('id', matchId)
       .select()
@@ -175,7 +190,12 @@ export const MatchService = {
         total_overs: prevTotalOvers,
         current_over_balls: prevOverBalls,
         striker,
-        non_striker: nonStriker
+        non_striker: nonStriker,
+        striker_runs: Math.max(0, (match.striker_runs || 0) - lastBall.runs),
+        striker_balls: Math.max(0, (match.striker_balls || 0) - (isLegalBall ? 1 : 0)),
+        bowler_runs: Math.max(0, (match.bowler_runs || 0) - lastBall.runs),
+        bowler_wickets: Math.max(0, (match.bowler_wickets || 0) - (lastBall.is_wicket ? 1 : 0)),
+        bowler_overs: isLegalBall ? Math.max(0, (match.bowler_overs || 0) - 0.1) : (match.bowler_overs || 0)
       })
       .eq('id', matchId);
 
