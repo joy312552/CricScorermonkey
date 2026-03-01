@@ -2,10 +2,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { MatchService } from '../services/MatchService';
-import { Match } from '../types';
+import { Match, OverlayCommand } from '../types';
 
 export const useMatchRealTime = (matchId: string | undefined) => {
   const [match, setMatch] = useState<Match | null>(null);
+  const [overlayCommand, setOverlayCommand] = useState<OverlayCommand | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,14 +31,37 @@ export const useMatchRealTime = (matchId: string | undefined) => {
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'matches',
           filter: `id=eq.${matchId}`,
         },
         (payload) => {
-          // Automatically update UI when database changes
           setMatch(payload.new as Match);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'overlay_commands',
+          filter: `match_id=eq.${matchId}`,
+        },
+        (payload) => {
+          setOverlayCommand(payload.new as OverlayCommand);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'overlay_commands',
+          filter: `match_id=eq.${matchId}`,
+        },
+        (payload) => {
+          setOverlayCommand(payload.new as OverlayCommand);
         }
       )
       .subscribe();
@@ -47,5 +71,5 @@ export const useMatchRealTime = (matchId: string | undefined) => {
     };
   }, [matchId]);
 
-  return { match, loading };
+  return { match, overlayCommand, loading };
 };

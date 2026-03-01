@@ -40,6 +40,7 @@ export interface Ball {
   id: string;
   match_id: string;
   runs: number;
+  extra_type?: string;
   is_wicket: boolean;
   over_number: number;
   ball_number: number;
@@ -53,8 +54,22 @@ export interface Match {
   total_runs: number;
   total_wickets: number;
   total_overs: number;
+  current_over_balls: number;
+  striker?: string;
+  non_striker?: string;
+  bowler?: string;
+  target?: number;
   created_by: string;
   status: 'live' | 'upcoming' | 'completed';
+  created_at: string;
+}
+
+export interface OverlayCommand {
+  id: string;
+  match_id: string;
+  command: string;
+  payload: any;
+  visible: boolean;
   created_at: string;
 }
 
