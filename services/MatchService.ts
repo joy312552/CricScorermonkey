@@ -59,20 +59,36 @@ export const MatchService = {
   async recordBall(matchId: string, match: Match, runs: number, isWicket: boolean, extraType?: string) {
     const isLegalBall = !['wd', 'nb'].includes(extraType || '');
     
-    let nextOverBalls = match.current_over_balls;
-    let nextTotalOvers = match.total_overs;
-    
+    let nextOverBalls = match.current_over_balls || 0;
+    let nextTotalOvers = match.total_overs || 0;
+    let striker = match.striker || 'Batter 1';
+    let nonStriker = match.non_striker || 'Batter 2';
+
+    // 1. Handle Strike Rotation (Odd runs)
+    // Wides/No-balls: runs usually include the extra + what was run.
+    // If it's a wide/nb, the runs recorded might be 1 (extra) + runs.
+    // Standard: 1 run on legal ball = swap. 1 run on wide = swap if they ran.
+    // Let's assume 'runs' passed is the total runs for that ball.
+    // If runs are odd, swap strike.
+    if (runs % 2 !== 0) {
+      [striker, nonStriker] = [nonStriker, striker];
+    }
+
+    // 2. Handle Overs
     if (isLegalBall) {
       nextOverBalls += 1;
       if (nextOverBalls === 6) {
+        // Over complete: increment over, reset ball count, and swap strike
         nextTotalOvers = Math.floor(nextTotalOvers) + 1;
         nextOverBalls = 0;
+        [striker, nonStriker] = [nonStriker, striker];
       } else {
+        // Just update the decimal part
         nextTotalOvers = Math.floor(nextTotalOvers) + (nextOverBalls / 10);
       }
     }
 
-    // Insert ball record
+    // 3. Insert ball record
     const { error: ballError } = await supabase
       .from('balls')
       .insert([{
@@ -86,14 +102,16 @@ export const MatchService = {
 
     if (ballError) throw ballError;
 
-    // Update match score
+    // 4. Update match score
     const { data: updatedMatch, error: matchError } = await supabase
       .from('matches')
       .update({
-        total_runs: match.total_runs + runs,
-        total_wickets: match.total_wickets + (isWicket ? 1 : 0),
+        total_runs: (match.total_runs || 0) + runs,
+        total_wickets: (match.total_wickets || 0) + (isWicket ? 1 : 0),
         total_overs: nextTotalOvers,
-        current_over_balls: nextOverBalls
+        current_over_balls: nextOverBalls,
+        striker,
+        non_striker: nonStriker
       })
       .eq('id', matchId)
       .select()
@@ -126,11 +144,20 @@ export const MatchService = {
 
     // 3. Calculate previous state
     const isLegalBall = !['wd', 'nb'].includes(lastBall.extra_type || '');
-    let prevOverBalls = match.current_over_balls;
-    let prevTotalOvers = match.total_overs;
+    let prevOverBalls = match.current_over_balls || 0;
+    let prevTotalOvers = match.total_overs || 0;
+    let striker = match.striker;
+    let nonStriker = match.non_striker;
+
+    // Reverse strike rotation if runs were odd
+    if (lastBall.runs % 2 !== 0) {
+      [striker, nonStriker] = [nonStriker, striker];
+    }
 
     if (isLegalBall) {
       if (prevOverBalls === 0) {
+        // Was end of over, reverse over completion strike swap too
+        [striker, nonStriker] = [nonStriker, striker];
         prevTotalOvers = Math.floor(prevTotalOvers) - 1 + 0.5;
         prevOverBalls = 5;
       } else {
@@ -143,10 +170,12 @@ export const MatchService = {
     await supabase
       .from('matches')
       .update({
-        total_runs: match.total_runs - lastBall.runs,
-        total_wickets: match.total_wickets - (lastBall.is_wicket ? 1 : 0),
+        total_runs: Math.max(0, (match.total_runs || 0) - lastBall.runs),
+        total_wickets: Math.max(0, (match.total_wickets || 0) - (lastBall.is_wicket ? 1 : 0)),
         total_overs: prevTotalOvers,
-        current_over_balls: prevOverBalls
+        current_over_balls: prevOverBalls,
+        striker,
+        non_striker: nonStriker
       })
       .eq('id', matchId);
 
