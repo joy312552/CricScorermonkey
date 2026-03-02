@@ -25,7 +25,7 @@ import { Match } from '../types';
 export const Scorer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { match: remoteMatch, loading } = useMatchRealTime(id);
+  const { match: remoteMatch, overlayCommand, loading } = useMatchRealTime(id);
   const [match, setMatch] = useState<Match | null>(null);
   const [customText, setCustomText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -71,7 +71,7 @@ export const Scorer: React.FC = () => {
 
     if (isLegalBall) {
       nextOverBalls += 1;
-      if (nextOverBalls === 6) {
+      if (nextOverBalls >= 6) {
         nextTotalOvers = Math.floor(nextTotalOvers) + 1;
         nextOverBalls = 0;
         [striker, nonStriker] = [nonStriker, striker];
@@ -79,6 +79,13 @@ export const Scorer: React.FC = () => {
         nextTotalOvers = Math.floor(nextTotalOvers) + (nextOverBalls / 10);
       }
     }
+
+    const incrementBowlerOvers = (current: number) => {
+      const overs = Math.floor(current);
+      const balls = Math.round((current % 1) * 10) + 1;
+      if (balls >= 6) return overs + 1;
+      return overs + (balls / 10);
+    };
 
     const optimisticMatch = {
       ...match,
@@ -92,7 +99,7 @@ export const Scorer: React.FC = () => {
       striker_balls: (match.striker_balls || 0) + (isLegalBall ? 1 : 0),
       bowler_runs: (match.bowler_runs || 0) + runs,
       bowler_wickets: (match.bowler_wickets || 0) + (isWicket ? 1 : 0),
-      bowler_overs: isLegalBall ? (match.bowler_overs || 0) + 0.1 : (match.bowler_overs || 0)
+      bowler_overs: isLegalBall ? incrementBowlerOvers(match.bowler_overs || 0) : (match.bowler_overs || 0)
     };
 
     setMatch(optimisticMatch);
@@ -122,7 +129,11 @@ export const Scorer: React.FC = () => {
 
   const sendCommand = async (command: string, payload: any = {}) => {
     try {
-      await MatchService.sendOverlayCommand(match.id, command, payload);
+      if (overlayCommand?.visible && overlayCommand.command === command) {
+        await MatchService.hideOverlay(match.id);
+      } else {
+        await MatchService.sendOverlayCommand(match.id, command, payload);
+      }
     } catch (err) {
       console.error('Command error:', err);
     }
@@ -160,33 +171,33 @@ export const Scorer: React.FC = () => {
   ];
 
   return (
-    <div className="h-screen w-screen bg-slate-950 text-slate-200 font-sans overflow-hidden flex flex-col">
+    <div className="h-screen w-screen bg-white text-slate-900 font-sans overflow-hidden flex flex-col">
       {/* 1. SLIM HEADER */}
-      <header className="h-12 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between shrink-0">
+      <header className="h-12 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
-          <Radio className="w-4 h-4 text-emerald-500 animate-pulse" />
-          <h1 className="text-xs font-black tracking-tighter text-white uppercase">
-            Control <span className="text-[8px] bg-red-600 px-1.5 py-0.5 rounded-full ml-1">LIVE</span>
+          <Radio className="w-4 h-4 text-emerald-600 animate-pulse" />
+          <h1 className="text-xs font-black tracking-tighter text-slate-900 uppercase">
+            Control <span className="text-[8px] bg-red-600 text-white px-1.5 py-0.5 rounded-full ml-1">LIVE</span>
           </h1>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-950 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 rounded-lg border border-slate-200">
             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-            <span className="text-[8px] font-black text-white uppercase">Sync</span>
+            <span className="text-[8px] font-black text-slate-600 uppercase">Sync</span>
           </div>
-          <button onClick={() => navigate('/dashboard')} className="p-1.5 bg-slate-800 rounded-lg">
-            <LogOut className="w-3.5 h-3.5 text-slate-400" />
+          <button onClick={() => navigate('/dashboard')} className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+            <LogOut className="w-3.5 h-3.5 text-slate-600" />
           </button>
         </div>
       </header>
 
       {/* 2. COMPACT SCORE PREVIEW */}
-      <section className="h-20 bg-slate-900/50 border-b border-slate-800 px-4 flex items-center justify-between shrink-0 relative overflow-hidden">
+      <section className="h-20 bg-slate-50 border-b border-slate-200 px-4 flex items-center justify-between shrink-0 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl -mr-16 -mt-16" />
         <div className="relative z-10 flex flex-col">
-          <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-0.5">Live Preview</span>
-          <h2 className="text-sm font-black text-white tracking-tight uppercase truncate max-w-[150px]">
-            {match.team_a} <span className="text-slate-600 italic text-[10px]">v</span> {match.team_b}
+          <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">Live Preview</span>
+          <h2 className="text-sm font-black text-slate-900 tracking-tight uppercase truncate max-w-[150px]">
+            {match.team_a} <span className="text-slate-400 italic text-[10px]">v</span> {match.team_b}
           </h2>
           <div className="flex gap-2 mt-1">
              <span className="text-[8px] font-bold text-slate-500 uppercase">S: {match.striker?.split(' ')[0]}</span>
@@ -194,33 +205,33 @@ export const Scorer: React.FC = () => {
           </div>
         </div>
         <div className="relative z-10 text-right">
-          <div className="text-3xl font-black text-white tracking-tighter leading-none">
-            {match.total_runs}<span className="text-slate-700">/</span>{match.total_wickets}
+          <div className="text-3xl font-black text-slate-900 tracking-tighter leading-none">
+            {match.total_runs}<span className="text-slate-300">/</span>{match.total_wickets}
           </div>
-          <div className="text-[10px] font-black text-slate-500 uppercase tracking-tighter mt-1">
-            Overs <span className="text-emerald-500">{match.total_overs.toFixed(1)}</span>
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-1">
+            Overs <span className="text-emerald-600">{match.total_overs.toFixed(1)}</span>
           </div>
         </div>
       </section>
 
       {/* 3. MAIN CONTROL AREA (SCROLL-FREE) */}
-      <div className="flex-1 flex flex-col p-3 gap-3 overflow-hidden">
+      <div className="flex-1 flex flex-col p-3 gap-3 overflow-hidden bg-white">
         
         {/* Scoring Engine */}
-        <div className="flex-1 flex flex-col gap-3 min-h-0">
+        <div className="flex flex-col gap-3 min-h-0">
           <div className="flex items-center gap-2 px-1">
-            <Zap className="w-3 h-3 text-emerald-500" />
-            <span className="text-[9px] font-black text-white uppercase tracking-widest">Scoring Engine</span>
+            <Zap className="w-3 h-3 text-emerald-600" />
+            <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Scoring Engine</span>
           </div>
           
           {/* Runs Grid */}
-          <div className="grid grid-cols-4 gap-2 h-1/2">
+          <div className="grid grid-cols-8 gap-1 shrink-0">
             {scoreButtons.map((runs) => (
               <button
                 key={runs}
                 onClick={() => handleScore(runs)}
                 disabled={isProcessing}
-                className="bg-slate-800 hover:bg-emerald-600 active:scale-95 text-white rounded-xl text-xl font-black transition-all shadow-lg shadow-black/20 flex items-center justify-center disabled:opacity-50"
+                className="w-full h-10 bg-slate-100 hover:bg-emerald-600 hover:text-white active:scale-95 text-slate-800 rounded-lg text-base font-black transition-all border border-slate-200 shadow-sm flex items-center justify-center disabled:opacity-50"
               >
                 {runs}
               </button>
@@ -228,20 +239,20 @@ export const Scorer: React.FC = () => {
             <button
               onClick={() => handleScore(0, true)}
               disabled={isProcessing}
-              className="bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-red-900/20 disabled:opacity-50"
+              className="w-full h-10 bg-red-50 hover:bg-red-600 hover:text-white text-red-600 rounded-lg text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 shadow-sm disabled:opacity-50"
             >
-              Wicket
+              OUT
             </button>
           </div>
 
           {/* Extras Grid */}
-          <div className="grid grid-cols-4 gap-2 h-1/4">
+          <div className="grid grid-cols-4 gap-1 shrink-0">
             {extraButtons.map((btn) => (
               <button
                 key={btn.label}
                 onClick={() => handleScore(btn.runs, false, btn.type)}
                 disabled={isProcessing}
-                className="bg-slate-800 hover:bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
+                className="py-1.5 bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border border-slate-200 disabled:opacity-50"
               >
                 {btn.label}
               </button>
@@ -249,62 +260,68 @@ export const Scorer: React.FC = () => {
           </div>
 
           {/* Utility Row */}
-          <div className="grid grid-cols-4 gap-2 h-1/4">
-            <button onClick={handleUndo} className="bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1">
+          <div className="grid grid-cols-4 gap-1 shrink-0">
+            <button onClick={handleUndo} className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1 shadow-sm">
               <Undo2 className="w-3 h-3" /> Undo
             </button>
-            <button className="bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 rounded-xl text-[9px] font-black uppercase tracking-widest">
+            <button className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">
               Batter
             </button>
-            <button className="bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 rounded-xl text-[9px] font-black uppercase tracking-widest">
+            <button className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">
               Bowler
             </button>
-            <button className="bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 rounded-xl text-[9px] font-black uppercase tracking-widest">
+            <button className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">
               Settings
             </button>
           </div>
         </div>
 
         {/* Graphics Engine */}
-        <div className="h-1/3 flex flex-col gap-2 min-h-0">
-          <div className="flex items-center justify-between px-1">
+        <div className="flex-1 flex flex-col gap-1 min-h-0">
+          <div className="flex items-center justify-between px-1 shrink-0">
             <div className="flex items-center gap-2">
-              <MonitorPlay className="w-3 h-3 text-blue-500" />
-              <span className="text-[9px] font-black text-white uppercase tracking-widest">Graphics Engine</span>
+              <MonitorPlay className="w-3 h-3 text-blue-600" />
+              <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Graphics Engine</span>
             </div>
-            <button onClick={() => MatchService.hideOverlay(match.id)} className="text-[8px] font-black text-slate-500 uppercase flex items-center gap-1">
+            <button onClick={() => MatchService.hideOverlay(match.id)} className="text-[8px] font-black text-slate-400 hover:text-slate-600 uppercase flex items-center gap-1 transition-colors">
               <EyeOff className="w-2.5 h-2.5" /> Hide All
             </button>
           </div>
 
           <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
-            <div className="grid grid-cols-3 gap-1.5">
-              {graphicsButtons.map((btn) => (
-                <button
-                  key={btn.label}
-                  onClick={() => sendCommand(btn.cmd)}
-                  className="py-2.5 bg-slate-900 border border-slate-800 hover:bg-blue-600 hover:border-blue-500 rounded-lg flex flex-col items-center justify-center gap-1 transition-all"
-                >
-                  {btn.icon ? <btn.icon className="w-3 h-3 text-slate-500" /> : <Tv className="w-3 h-3 text-slate-500" />}
-                  <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 leading-none">
-                    {btn.label}
-                  </span>
-                </button>
-              ))}
+            <div className="grid grid-cols-4 gap-1">
+              {graphicsButtons.map((btn) => {
+                const isActive = overlayCommand?.visible && overlayCommand.command === btn.cmd;
+                return (
+                  <button
+                    key={btn.label}
+                    onClick={() => sendCommand(btn.cmd)}
+                    className={`py-1.5 rounded-lg flex flex-col items-center justify-center gap-1 transition-all border ${
+                      isActive 
+                        ? "bg-emerald-600 border-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)]" 
+                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    <span className="text-[7px] font-black uppercase tracking-widest leading-none">
+                      {btn.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
 
       {/* 4. SLIM FOOTER */}
-      <footer className="h-10 bg-slate-900 border-t border-slate-800 px-4 flex items-center justify-between shrink-0">
+      <footer className="h-10 bg-white border-t border-slate-200 px-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
-          <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">OBS Sync Active</span>
+          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">OBS Sync Active</span>
         </div>
         <button 
           onClick={() => window.open(`/#/overlay/${match.id}`, '_blank')}
-          className="text-[8px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1"
+          className="text-[8px] font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-widest flex items-center gap-1 transition-colors"
         >
           Open Overlay <ChevronRight className="w-2.5 h-2.5" />
         </button>

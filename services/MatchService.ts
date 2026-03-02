@@ -88,16 +88,22 @@ export const MatchService = {
     // 2. Handle Overs
     if (isLegalBall) {
       nextOverBalls += 1;
-      if (nextOverBalls === 6) {
-        // Over complete: increment over, reset ball count, and swap strike
+      if (nextOverBalls >= 6) {
         nextTotalOvers = Math.floor(nextTotalOvers) + 1;
         nextOverBalls = 0;
         [striker, nonStriker] = [nonStriker, striker];
       } else {
-        // Just update the decimal part
         nextTotalOvers = Math.floor(nextTotalOvers) + (nextOverBalls / 10);
       }
     }
+
+    // Helper to increment bowler overs
+    const incrementBowlerOvers = (current: number) => {
+      const overs = Math.floor(current);
+      const balls = Math.round((current % 1) * 10) + 1;
+      if (balls >= 6) return overs + 1;
+      return overs + (balls / 10);
+    };
 
     // 3. Insert ball record
     const { error: ballError } = await supabase
@@ -127,7 +133,7 @@ export const MatchService = {
         striker_balls: (match.striker_balls || 0) + (isLegalBall ? 1 : 0),
         bowler_runs: (match.bowler_runs || 0) + runs,
         bowler_wickets: (match.bowler_wickets || 0) + (isWicket ? 1 : 0),
-        bowler_overs: isLegalBall ? (match.bowler_overs || 0) + 0.1 : (match.bowler_overs || 0)
+        bowler_overs: isLegalBall ? incrementBowlerOvers(match.bowler_overs || 0) : (match.bowler_overs || 0)
       })
       .eq('id', matchId)
       .select()

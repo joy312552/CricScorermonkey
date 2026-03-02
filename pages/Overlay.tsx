@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMatchRealTime } from '../hooks/useMatchRealTime';
 import { Trophy, Swords, BarChart3, TrendingUp, Target } from 'lucide-react';
-import { LowerScoreboard } from '../components/LowerScoreboard';
+import { CenteredScoreboard } from '../components/CenteredScoreboard';
 import { PlayingXIOverlay } from '../components/PlayingXIOverlay';
 import { IndiaPlayingXIOverlay } from '../components/IndiaPlayingXIOverlay';
 
@@ -121,6 +121,69 @@ export const Overlay: React.FC = () => {
       case 'INDIA_PLAYING_XI':
         return <IndiaPlayingXIOverlay key="india_playing_xi" />;
 
+      case 'TOSS_WINNER':
+        return (
+          <motion.div 
+            key="toss_winner"
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-40 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-12 py-6 rounded-xl shadow-2xl z-50 pointer-events-none border border-white/20"
+          >
+            <div className="flex flex-col items-center">
+              <span className="text-xs font-black uppercase tracking-[0.3em] opacity-60 mb-2">Toss Result</span>
+              <p className="text-3xl font-black uppercase tracking-tighter text-center">
+                {match.team_a} WON THE TOSS & ELECTED TO BAT
+              </p>
+            </div>
+          </motion.div>
+        );
+
+      case 'TARGET':
+        return (
+          <motion.div 
+            key="target"
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 100 }}
+            className="fixed right-20 top-1/2 -translate-y-1/2 w-[400px] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 shadow-2xl z-50 pointer-events-none"
+          >
+            <div className="flex flex-col items-center text-center">
+              <Target className="w-12 h-12 text-red-500 mb-4" />
+              <span className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Target Score</span>
+              <h3 className="text-6xl font-black text-white tracking-tighter">{match.target || 'N/A'}</h3>
+              <p className="text-sm font-bold text-slate-500 uppercase mt-4">Required to win in {match.match_overs} overs</p>
+            </div>
+          </motion.div>
+        );
+
+      case 'NEED_RUN':
+        const runsNeeded = (match.target || 0) - match.total_runs;
+        const currentOversNum = match.total_overs;
+        const ballsBowled = Math.floor(currentOversNum) * 6 + Math.round((currentOversNum % 1) * 10);
+        const totalBalls = (match.match_overs || 20) * 6;
+        const ballsRemaining = Math.max(0, totalBalls - ballsBowled);
+        
+        return (
+          <motion.div 
+            key="need_run"
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-40 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-xl border border-white/10 px-12 py-8 rounded-2xl shadow-2xl z-50 pointer-events-none"
+          >
+            <div className="flex flex-col items-center">
+              <TrendingUp className="w-8 h-8 text-emerald-500 mb-3" />
+              <p className="text-4xl font-black text-white uppercase tracking-tighter text-center">
+                {match.team_a} NEED <span className="text-emerald-500">{runsNeeded}</span> RUNS
+              </p>
+              <p className="text-lg font-bold text-slate-400 uppercase tracking-widest mt-1">
+                FROM {ballsRemaining} BALLS
+              </p>
+            </div>
+          </motion.div>
+        );
+
       default:
         return null;
     }
@@ -128,8 +191,8 @@ export const Overlay: React.FC = () => {
 
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none font-sans bg-transparent">
-      {/* Professional Lower Scoreboard (Always Visible) */}
-      <LowerScoreboard 
+      {/* Professional Centered Scoreboard (Always Visible) */}
+      <CenteredScoreboard 
         teamA={match.team_a}
         teamB={match.team_b}
         striker={match.striker || 'Batter 1'}
