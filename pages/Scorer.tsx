@@ -137,6 +137,8 @@ export const Scorer: React.FC = () => {
   ];
 
   const graphicsButtons = [
+    { label: 'INDIA XI', cmd: 'INDIA_PLAYING_XI' },
+    { label: 'PAK XI', cmd: 'PLAYING_XI' },
     { label: 'TEAM VS', cmd: 'TEAM_VS_TEAM' },
     { label: 'SUMMARY', cmd: 'MATCH_SUMMARY' },
     { label: 'STRIKE', cmd: 'STRIKE_BATTER' },

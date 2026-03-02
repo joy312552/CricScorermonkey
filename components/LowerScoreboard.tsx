@@ -17,6 +17,9 @@ interface LowerScoreboardProps {
   bowlerWickets?: number;
   bowlerRuns?: number;
   bowlerOvers?: string;
+  target?: number;
+  matchOvers?: number;
+  crr?: string;
 }
 
 export const LowerScoreboard: React.FC<LowerScoreboardProps> = ({
@@ -34,99 +37,124 @@ export const LowerScoreboard: React.FC<LowerScoreboardProps> = ({
   nonStrikerBalls = 0,
   bowlerWickets = 0,
   bowlerRuns = 0,
-  bowlerOvers = '0.0'
+  bowlerOvers = '0.0',
+  target,
+  matchOvers = 20,
+  crr
 }) => {
+  const currentOversNum = parseFloat(overs);
+  const runsScored = parseInt(score.split('-')[0]);
+  const ballsBowled = Math.floor(currentOversNum) * 6 + Math.round((currentOversNum % 1) * 10);
+  const totalBalls = matchOvers * 6;
+  const ballsRemaining = Math.max(0, totalBalls - ballsBowled);
+  
+  let rrr = null;
+  if (target) {
+    const runsNeeded = Math.max(0, target - runsScored);
+    if (ballsRemaining > 0) {
+      rrr = ((runsNeeded / ballsRemaining) * 6).toFixed(2);
+    } else if (runsNeeded > 0) {
+      rrr = 'INF';
+    } else {
+      rrr = '0.00';
+    }
+  }
+
   return (
     <motion.div 
-      initial={{ y: 100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[1200px] h-24 flex items-stretch font-sans select-none z-50"
+      initial={{ y: 50, opacity: 0, x: '-50%' }}
+      animate={{ y: 0, opacity: 1, x: '-50%' }}
+      className="fixed bottom-6 left-1/2 w-[65%] min-w-[850px] max-w-[1100px] h-16 flex items-stretch font-sans select-none z-50 drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
     >
-      {/* LEFT SECTION: BATTING (GREEN) */}
-      <div className="relative flex-1 bg-gradient-to-r from-[#0f5f2e] to-[#1f8f4a] flex items-center px-6 overflow-hidden border-l-4 border-emerald-400">
-        {/* Animated Glow behind logo */}
-        <div className="absolute -left-10 w-40 h-40 bg-emerald-400/20 rounded-full blur-3xl animate-pulse" />
+      {/* LEFT SECTION: BATTING TEAM & BATSMEN */}
+      <div 
+        className="flex-[1.4] bg-slate-900/95 border-l-4 border-emerald-500 flex items-center px-4 gap-4 relative overflow-hidden"
+        style={{ clipPath: 'polygon(0 0, 100% 0, 94% 100%, 0 100%)' }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-transparent pointer-events-none" />
         
-        {/* Team Logo Placeholder */}
-        <div className="relative z-10 w-14 h-14 bg-white/10 rounded-full border border-white/20 flex items-center justify-center mr-4 shadow-lg">
-          <div className="w-10 h-10 bg-emerald-900 rounded-full flex items-center justify-center text-white font-black text-xl italic">
-            {teamA.charAt(0)}
-          </div>
+        {/* Team Logo */}
+        <div className="w-10 h-10 bg-white/10 rounded-full border border-white/20 flex items-center justify-center shrink-0 shadow-inner">
+          <span className="text-white font-black text-lg italic">{teamA.charAt(0)}</span>
         </div>
 
-        {/* Batsmen Info */}
-        <div className="relative z-10 flex flex-col justify-center gap-1">
-          <div className="flex items-center gap-3">
-            <span className="text-white font-black text-sm uppercase tracking-tighter w-32 truncate">{striker}</span>
-            <span className="text-yellow-400 font-black text-lg tracking-tighter">{strikerRuns}</span>
-            <span className="text-white/60 font-bold text-xs">({strikerBalls})</span>
-            <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(250,204,21,0.8)]" />
+        {/* Batsmen */}
+        <div className="flex flex-col justify-center min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-white font-black text-[13px] uppercase tracking-tighter truncate max-w-[120px]">{striker}</span>
+            <span className="text-yellow-400 font-black text-sm">{strikerRuns}</span>
+            <span className="text-white/40 font-bold text-[10px]">({strikerBalls})</span>
+            <div className="w-1 h-1 bg-yellow-400 rounded-full animate-pulse" />
           </div>
-          <div className="flex items-center gap-3 opacity-80">
-            <span className="text-white/80 font-bold text-sm uppercase tracking-tighter w-32 truncate">{nonStriker}</span>
-            <span className="text-white/80 font-bold text-lg tracking-tighter">{nonStrikerRuns}</span>
-            <span className="text-white/40 font-bold text-xs">({nonStrikerBalls})</span>
+          <div className="flex items-center gap-2 opacity-60">
+            <span className="text-white font-bold text-[11px] uppercase tracking-tighter truncate max-w-[100px]">{nonStriker}</span>
+            <span className="text-white font-bold text-xs">{nonStrikerRuns}</span>
+            <span className="text-white/40 font-bold text-[9px]">({nonStrikerBalls})</span>
           </div>
         </div>
-
-        {/* Angular Cut */}
-        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-r from-transparent to-black/10 skew-x-[20deg] translate-x-4" />
       </div>
 
-      {/* CENTER SECTION: SCORE (METALLIC WHITE) */}
-      <div className="relative w-[400px] bg-gradient-to-b from-white via-slate-200 to-slate-300 flex flex-col items-center justify-center px-4 shadow-[0_0_40px_rgba(255,255,255,0.2)] z-20">
-        {/* Top Label */}
-        <div className="absolute top-1 bg-slate-800 text-white px-3 py-0.5 rounded-sm text-[9px] font-black uppercase tracking-widest">
+      {/* CENTER SECTION: MAIN SCORE & OVERS */}
+      <div 
+        className="flex-1 bg-gradient-to-b from-white via-slate-100 to-slate-300 flex flex-col items-center justify-center relative -mx-6 z-10 shadow-2xl"
+        style={{ clipPath: 'polygon(6% 0, 94% 0, 100% 100%, 0 100%)' }}
+      >
+        <div className="absolute top-0.5 bg-slate-800 text-white px-2 py-0.5 rounded-b-sm text-[8px] font-black uppercase tracking-[0.2em]">
           {inning}
         </div>
 
-        {/* Main Score */}
-        <div className="flex items-baseline gap-2 mt-2">
-          <span className="text-slate-900 font-black text-xs uppercase tracking-widest opacity-60">{teamA}</span>
-          <span className="text-slate-900 font-black text-4xl tracking-tighter">{score}</span>
+        <div className="flex items-baseline gap-2 mt-1">
+          <span className="text-slate-500 font-black text-[10px] uppercase tracking-widest">{teamA.substring(0, 3)}</span>
+          <span className="text-slate-900 font-black text-3xl tracking-tighter">{score}</span>
         </div>
 
-        {/* Overs */}
-        <div className="text-slate-800 font-black text-sm uppercase tracking-tighter">
-          Overs <span className="text-emerald-700">{overs}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-slate-800 font-black text-xs uppercase tracking-tighter">
+            Overs <span className="text-emerald-700">{overs}</span>
+          </span>
+          <div className="flex gap-2">
+            {crr && (
+              <span className="text-slate-500 font-bold text-[9px] uppercase tracking-widest">
+                CRR {crr}
+              </span>
+            )}
+            {rrr && (
+              <span className="text-blue-600 font-bold text-[9px] uppercase tracking-widest">
+                RRR {rrr}
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Bottom Text */}
-        <div className="absolute bottom-1 text-slate-900/40 text-[8px] font-black uppercase tracking-[0.4em]">
+        <div className="absolute bottom-0.5 text-slate-900/40 text-[7px] font-black uppercase tracking-[0.3em]">
           BATTING: {teamA}
         </div>
       </div>
 
-      {/* RIGHT SECTION: BOWLING (BLUE) */}
-      <div className="relative flex-1 bg-gradient-to-l from-[#0a2a6c] to-[#1540a1] flex items-center justify-end px-6 overflow-hidden border-r-4 border-blue-400">
-        {/* Animated Glow behind logo */}
-        <div className="absolute -right-10 w-40 h-40 bg-blue-400/20 rounded-full blur-3xl animate-pulse" />
+      {/* RIGHT SECTION: BOWLING TEAM & BOWLER */}
+      <div 
+        className="flex-1 bg-slate-900/95 border-r-4 border-blue-500 flex items-center justify-end px-4 gap-4 relative overflow-hidden"
+        style={{ clipPath: 'polygon(6% 0, 100% 0, 100% 100%, 0 100%)' }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-l from-blue-500/10 to-transparent pointer-events-none" />
 
         {/* Bowler Info */}
-        <div className="relative z-10 flex flex-col items-end justify-center gap-1 mr-4">
-          <div className="flex items-center gap-3">
-            <span className="text-white/60 font-bold text-xs uppercase tracking-widest">BOWLING</span>
-            <span className="text-white font-black text-sm uppercase tracking-tighter truncate max-w-[120px]">{bowler}</span>
+        <div className="flex flex-col items-end justify-center min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-white/40 font-bold text-[9px] uppercase tracking-widest">BOWLING</span>
+            <span className="text-white font-black text-[13px] uppercase tracking-tighter truncate max-w-[120px]">{bowler}</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-white font-black text-2xl tracking-tighter">{bowlerWickets}-{bowlerRuns}</span>
-            <span className="text-white/40 font-bold text-xs">({bowlerOvers})</span>
+            <span className="text-white font-black text-xl tracking-tighter">{bowlerWickets}-{bowlerRuns}</span>
+            <span className="text-white/40 font-bold text-[10px]">({bowlerOvers})</span>
           </div>
         </div>
 
-        {/* Team Logo Placeholder */}
-        <div className="relative z-10 w-14 h-14 bg-white/10 rounded-full border border-white/20 flex items-center justify-center shadow-lg">
-          <div className="w-10 h-10 bg-blue-900 rounded-full flex items-center justify-center text-white font-black text-xl italic">
-            {teamB.charAt(0)}
-          </div>
+        {/* Team Logo */}
+        <div className="w-10 h-10 bg-white/10 rounded-full border border-white/20 flex items-center justify-center shrink-0 shadow-inner">
+          <span className="text-white font-black text-lg italic">{teamB.charAt(0)}</span>
         </div>
-
-        {/* Angular Cut */}
-        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-l from-transparent to-black/10 -skew-x-[20deg] -translate-x-4" />
       </div>
-
-      {/* Subtle Bottom Shadow */}
-      <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-[90%] h-4 bg-black/40 blur-xl rounded-full" />
     </motion.div>
   );
 };

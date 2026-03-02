@@ -55,6 +55,7 @@ export interface Match {
   total_wickets: number;
   total_overs: number;
   current_over_balls: number;
+  match_overs?: number;
   striker?: string;
   non_striker?: string;
   bowler?: string;

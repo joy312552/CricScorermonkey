@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useMatchRealTime } from '../hooks/useMatchRealTime';
 import { Trophy, Swords, BarChart3, TrendingUp, Target } from 'lucide-react';
 import { LowerScoreboard } from '../components/LowerScoreboard';
+import { PlayingXIOverlay } from '../components/PlayingXIOverlay';
+import { IndiaPlayingXIOverlay } from '../components/IndiaPlayingXIOverlay';
 
 export const Overlay: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -113,6 +115,12 @@ export const Overlay: React.FC = () => {
           </motion.div>
         );
 
+      case 'PLAYING_XI':
+        return <PlayingXIOverlay key="playing_xi" />;
+
+      case 'INDIA_PLAYING_XI':
+        return <IndiaPlayingXIOverlay key="india_playing_xi" />;
+
       default:
         return null;
     }
@@ -137,36 +145,15 @@ export const Overlay: React.FC = () => {
         bowlerWickets={match.bowler_wickets || 0}
         bowlerRuns={match.bowler_runs || 0}
         bowlerOvers={(match.bowler_overs || 0).toFixed(1)}
+        crr={(match.total_runs / Math.max(0.1, match.total_overs)).toFixed(2)}
+        target={match.target}
+        matchOvers={match.match_overs || 20}
       />
 
       {/* Dynamic Overlays */}
       <AnimatePresence mode="wait">
         {renderGraphic()}
       </AnimatePresence>
-
-      {/* CRR / RRR Floating Badge */}
-      <motion.div 
-        initial={{ opacity: 0, x: 50 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="fixed right-10 bottom-40 space-y-4"
-      >
-        <div className="bg-slate-900/90 backdrop-blur-md border border-white/10 px-6 py-3 rounded-2xl shadow-xl flex items-center gap-3">
-          <TrendingUp className="w-4 h-4 text-emerald-500" />
-          <div>
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">CRR</p>
-            <p className="text-lg font-black text-white">{(match.total_runs / Math.max(0.1, match.total_overs)).toFixed(2)}</p>
-          </div>
-        </div>
-        {match.target && (
-          <div className="bg-slate-900/90 backdrop-blur-md border border-white/10 px-6 py-3 rounded-2xl shadow-xl flex items-center gap-3">
-            <Target className="w-4 h-4 text-blue-500" />
-            <div>
-              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Target</p>
-              <p className="text-lg font-black text-white">{match.target}</p>
-            </div>
-          </div>
-        )}
-      </motion.div>
     </div>
   );
 };

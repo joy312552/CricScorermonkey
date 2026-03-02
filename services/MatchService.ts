@@ -14,6 +14,7 @@ export const MatchService = {
         total_wickets: 0,
         total_overs: 0,
         current_over_balls: 0,
+        match_overs: totalOvers,
         striker: 'Batter 1',
         non_striker: 'Batter 2',
         bowler: 'Bowler',
