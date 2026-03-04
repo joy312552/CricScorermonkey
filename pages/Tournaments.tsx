@@ -4,6 +4,7 @@ import { Plus, Trophy, ChevronLeft, Trash2, Calendar } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
+import { MatchService } from '../services/MatchService';
 import { Tournament } from '../types';
 
 export const Tournaments: React.FC = () => {
@@ -16,12 +17,7 @@ export const Tournaments: React.FC = () => {
   const fetchTournaments = async () => {
     if (!user) return;
     try {
-      const { data, error } = await supabase
-        .from('tournaments')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
+      const data = await MatchService.getTournaments(user.id);
       setTournaments(data || []);
     } catch (err) {
       console.error('Error fetching tournaments:', err);
@@ -39,10 +35,7 @@ export const Tournaments: React.FC = () => {
     if (!newName.trim() || !user) return;
 
     try {
-      const { error } = await supabase
-        .from('tournaments')
-        .insert([{ name: newName.trim(), user_id: user.id }]);
-      if (error) throw error;
+      await MatchService.createTournament(user.id, newName.trim());
       setNewName('');
       fetchTournaments();
     } catch (err) {
@@ -94,7 +87,7 @@ export const Tournaments: React.FC = () => {
                   <Trophy className="w-8 h-8" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-900">{t.name}</h3>
+                  <h3 className="text-xl font-black text-slate-900">{t.tournament_name}</h3>
                   <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">
                     <Calendar className="w-3 h-3" /> Created Recently
                   </div>

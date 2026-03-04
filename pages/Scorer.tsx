@@ -29,13 +29,55 @@ export const Scorer: React.FC = () => {
   const [match, setMatch] = useState<Match | null>(null);
   const [customText, setCustomText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDebouncing, setIsDebouncing] = useState(false);
+  const [activeModal, setActiveModal] = useState<'batter' | 'bowler' | 'settings' | null>(null);
+  const [settingsForm, setSettingsForm] = useState({ 
+    team_a: '', 
+    team_b: '', 
+    toss_winner: '', 
+    toss_decision: '',
+    tournament_name: '',
+    series_name: '',
+    venue: '',
+    match_overs: 20,
+    target: 0
+  });
+
+  useEffect(() => {
+    if (match) {
+      setSettingsForm({
+        team_a: match.team_a,
+        team_b: match.team_b,
+        toss_winner: match.toss_winner || '',
+        toss_decision: match.toss_decision || '',
+        tournament_name: match.tournament_name || '',
+        series_name: match.series_name || '',
+        venue: match.venue || '',
+        match_overs: match.match_overs || 20,
+        target: match.target || 0
+      });
+    }
+  }, [match?.id]);
+
+  const updateMatch = async (updates: Partial<Match>) => {
+    if (!match) return;
+    setIsProcessing(true);
+    try {
+      await MatchService.updateMatchPlayers(match.id, updates);
+      setActiveModal(null);
+    } catch (err) {
+      console.error('Update error:', err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   // Sync remote match to local state for optimistic updates
   useEffect(() => {
-    if (remoteMatch) {
+    if (remoteMatch && !isProcessing) {
       setMatch(remoteMatch);
     }
-  }, [remoteMatch]);
+  }, [remoteMatch, isProcessing]);
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen bg-slate-950">
@@ -55,63 +97,23 @@ export const Scorer: React.FC = () => {
   );
 
   const handleScore = async (runs: number, isWicket: boolean = false, extraType?: string) => {
-    if (isProcessing || !match) return;
+    if (isProcessing || isDebouncing || !match) return;
+    
     setIsProcessing(true);
+    setIsDebouncing(true);
 
-    // Optimistic Update
-    const isLegalBall = !['wd', 'nb'].includes(extraType || '');
-    let nextOverBalls = match.current_over_balls || 0;
-    let nextTotalOvers = match.total_overs || 0;
-    let striker = match.striker || 'Batter 1';
-    let nonStriker = match.non_striker || 'Batter 2';
-
-    if (runs % 2 !== 0) {
-      [striker, nonStriker] = [nonStriker, striker];
-    }
-
-    if (isLegalBall) {
-      nextOverBalls += 1;
-      if (nextOverBalls >= 6) {
-        nextTotalOvers = Math.floor(nextTotalOvers) + 1;
-        nextOverBalls = 0;
-        [striker, nonStriker] = [nonStriker, striker];
-      } else {
-        nextTotalOvers = Math.floor(nextTotalOvers) + (nextOverBalls / 10);
-      }
-    }
-
-    const incrementBowlerOvers = (current: number) => {
-      const overs = Math.floor(current);
-      const balls = Math.round((current % 1) * 10) + 1;
-      if (balls >= 6) return overs + 1;
-      return overs + (balls / 10);
-    };
-
-    const optimisticMatch = {
-      ...match,
-      total_runs: (match.total_runs || 0) + runs,
-      total_wickets: (match.total_wickets || 0) + (isWicket ? 1 : 0),
-      total_overs: nextTotalOvers,
-      current_over_balls: nextOverBalls,
-      striker,
-      non_striker: nonStriker,
-      striker_runs: (match.striker_runs || 0) + runs,
-      striker_balls: (match.striker_balls || 0) + (isLegalBall ? 1 : 0),
-      bowler_runs: (match.bowler_runs || 0) + runs,
-      bowler_wickets: (match.bowler_wickets || 0) + (isWicket ? 1 : 0),
-      bowler_overs: isLegalBall ? incrementBowlerOvers(match.bowler_overs || 0) : (match.bowler_overs || 0)
-    };
-
-    setMatch(optimisticMatch);
+    const beforeBalls = match.balls;
 
     try {
-      await MatchService.recordBall(match.id, match, runs, isWicket, extraType);
+      console.log(`[UI] Scoring: ${runs} runs | Wicket: ${isWicket} | Extra: ${extraType} | Before Balls: ${beforeBalls}`);
+      // 1. Update database - logic is now in MatchService.recordBall
+      await MatchService.recordBall(match.id, runs, isWicket, extraType);
     } catch (err) {
       console.error('Scoring error:', err);
-      // Revert on error
-      setMatch(remoteMatch);
     } finally {
       setIsProcessing(false);
+      // Debounce for 300ms to prevent double clicks
+      setTimeout(() => setIsDebouncing(false), 300);
     }
   };
 
@@ -148,26 +150,26 @@ export const Scorer: React.FC = () => {
   ];
 
   const graphicsButtons = [
-    { label: 'INDIA XI', cmd: 'INDIA_PLAYING_XI' },
-    { label: 'PAK XI', cmd: 'PLAYING_XI' },
     { label: 'TEAM VS', cmd: 'TEAM_VS_TEAM' },
     { label: 'SUMMARY', cmd: 'MATCH_SUMMARY' },
-    { label: 'STRIKE', cmd: 'STRIKE_BATTER' },
-    { label: 'TOSS', cmd: 'TOSS_WINNER' },
-    { label: 'BATT', cmd: 'BATT_SUMMARY' },
-    { label: 'BOWL', cmd: 'BOWL_SUMMARY' },
-    { label: 'WICKET', cmd: 'LAST_WICKET' },
+    { label: 'PLAYING XI', cmd: 'PLAYING_XI' },
+    { label: 'INDIA XI', cmd: 'INDIA_PLAYING_XI' },
+    { label: 'BATT CARD', cmd: 'BATT_SUMMARY' },
+    { label: 'BALLS', cmd: 'BALL_SUMMARY' },
     { label: 'TARGET', cmd: 'TARGET' },
     { label: 'NEED', cmd: 'NEED_RUN' },
     { label: 'PARTNER', cmd: 'PARTNERSHIP' },
-    { label: 'BAR', cmd: 'CHART_BAR', icon: BarChart3 },
-    { label: 'LINE', cmd: 'CHART_LINE', icon: LineChart },
-    { label: 'WAGON', cmd: 'CHART_WAGON', icon: PieChart },
-    { label: 'OUT', cmd: 'STATUS_OUT' },
-    { label: 'NOT OUT', cmd: 'STATUS_NOT_OUT' },
-    { label: 'SCORE', cmd: 'SHOW_SCORE' },
-    { label: 'CRR', cmd: 'SHOW_CRR' },
-    { label: 'EXTRA', cmd: 'SHOW_EXTRA' },
+    { label: 'CRR/RRR', cmd: 'SHOW_CRR' },
+    { label: 'EXTRAS', cmd: 'SHOW_EXTRA' },
+    { label: 'POWERPLAY', cmd: 'POWERPLAY' },
+    { label: 'TIMEOUT', cmd: 'TIMEOUT' },
+    { label: 'WKT FALL', cmd: 'WICKET_FALL' },
+    { label: 'MILESTONE', cmd: 'MILESTONE' },
+    { label: 'HAT-TRICK', cmd: 'HAT_TRICK' },
+    { label: 'SUPER OVR', cmd: 'SUPER_OVER' },
+    { label: 'DRS', cmd: 'DRS_REVIEW' },
+    { label: 'SPOTLIGHT', cmd: 'PLAYER_SPOTLIGHT' },
+    { label: 'TOSS', cmd: 'TOSS_WINNER' },
   ];
 
   return (
@@ -204,13 +206,19 @@ export const Scorer: React.FC = () => {
              <span className="text-[8px] font-bold text-slate-400 uppercase">NS: {match.non_striker?.split(' ')[0]}</span>
           </div>
         </div>
-        <div className="relative z-10 text-right">
+        
+        {/* Centered Scoreboard Fix */}
+        <div className="absolute left-1/2 -translate-x-1/2 text-center">
           <div className="text-3xl font-black text-slate-900 tracking-tighter leading-none">
-            {match.total_runs}<span className="text-slate-300">/</span>{match.total_wickets}
+            {match.runs}<span className="text-slate-300">/</span>{match.wickets}
           </div>
           <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-1">
-            Overs <span className="text-emerald-600">{match.total_overs.toFixed(1)}</span>
+            Overs <span className="text-emerald-600">{match.overs.toFixed(1)}</span>
           </div>
+        </div>
+
+        <div className="relative z-10 text-right opacity-0 pointer-events-none">
+          {/* Hidden original right-aligned score to maintain layout balance if needed, but we used absolute center */}
         </div>
       </section>
 
@@ -264,13 +272,13 @@ export const Scorer: React.FC = () => {
             <button onClick={handleUndo} className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1 shadow-sm">
               <Undo2 className="w-3 h-3" /> Undo
             </button>
-            <button className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">
+            <button onClick={() => setActiveModal('batter')} className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">
               Batter
             </button>
-            <button className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">
+            <button onClick={() => setActiveModal('bowler')} className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">
               Bowler
             </button>
-            <button className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">
+            <button onClick={() => setActiveModal('settings')} className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">
               Settings
             </button>
           </div>
@@ -339,6 +347,163 @@ export const Scorer: React.FC = () => {
           border-radius: 10px;
         }
       `}</style>
+
+      {/* MODALS */}
+      {activeModal === 'batter' && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 space-y-6">
+            <h3 className="text-xl font-black uppercase tracking-tighter">Select Batters</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Striker</label>
+                <input 
+                  type="text" 
+                  defaultValue={match.striker}
+                  onBlur={(e) => updateMatch({ striker: e.target.value })}
+                  className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Non-Striker</label>
+                <input 
+                  type="text" 
+                  defaultValue={match.non_striker}
+                  onBlur={(e) => updateMatch({ non_striker: e.target.value })}
+                  className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
+                />
+              </div>
+            </div>
+            <button onClick={() => setActiveModal(null)} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest">Done</button>
+          </div>
+        </div>
+      )}
+
+      {activeModal === 'bowler' && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 space-y-6">
+            <h3 className="text-xl font-black uppercase tracking-tighter">Select Bowler</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Current Bowler</label>
+                <input 
+                  type="text" 
+                  defaultValue={match.bowler}
+                  onBlur={(e) => updateMatch({ bowler: e.target.value })}
+                  className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
+                />
+              </div>
+            </div>
+            <button onClick={() => setActiveModal(null)} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest">Done</button>
+          </div>
+        </div>
+      )}
+
+      {activeModal === 'settings' && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 space-y-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-black uppercase tracking-tighter">Match Settings</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Tournament</label>
+                  <input 
+                    type="text" 
+                    value={settingsForm.tournament_name}
+                    onChange={(e) => setSettingsForm(prev => ({ ...prev, tournament_name: e.target.value }))}
+                    className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Series</label>
+                  <input 
+                    type="text" 
+                    value={settingsForm.series_name}
+                    onChange={(e) => setSettingsForm(prev => ({ ...prev, series_name: e.target.value }))}
+                    className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Venue</label>
+                <input 
+                  type="text" 
+                  value={settingsForm.venue}
+                  onChange={(e) => setSettingsForm(prev => ({ ...prev, venue: e.target.value }))}
+                  className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Match Overs</label>
+                  <input 
+                    type="number" 
+                    value={settingsForm.match_overs}
+                    onChange={(e) => setSettingsForm(prev => ({ ...prev, match_overs: parseInt(e.target.value) }))}
+                    className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Target</label>
+                  <input 
+                    type="number" 
+                    value={settingsForm.target}
+                    onChange={(e) => setSettingsForm(prev => ({ ...prev, target: parseInt(e.target.value) }))}
+                    className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Team A</label>
+                  <input 
+                    type="text" 
+                    value={settingsForm.team_a}
+                    onChange={(e) => setSettingsForm(prev => ({ ...prev, team_a: e.target.value }))}
+                    className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Team B</label>
+                  <input 
+                    type="text" 
+                    value={settingsForm.team_b}
+                    onChange={(e) => setSettingsForm(prev => ({ ...prev, team_b: e.target.value }))}
+                    className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Toss Winner</label>
+                <select 
+                  value={settingsForm.toss_winner}
+                  onChange={(e) => setSettingsForm(prev => ({ ...prev, toss_winner: e.target.value }))}
+                  className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
+                >
+                  <option value="">Select Team</option>
+                  <option value={settingsForm.team_a}>{settingsForm.team_a}</option>
+                  <option value={settingsForm.team_b}>{settingsForm.team_b}</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Decision</label>
+                <select 
+                  value={settingsForm.toss_decision}
+                  onChange={(e) => setSettingsForm(prev => ({ ...prev, toss_decision: e.target.value }))}
+                  className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
+                >
+                  <option value="">Select Decision</option>
+                  <option value="BAT">BAT</option>
+                  <option value="BOWL">BOWL</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setActiveModal(null)} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-xs tracking-widest">Cancel</button>
+              <button onClick={() => updateMatch(settingsForm)} className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

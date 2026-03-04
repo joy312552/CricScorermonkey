@@ -4,6 +4,7 @@ import { Plus, Users, Trophy, ChevronLeft, Trash2 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
+import { MatchService } from '../services/MatchService';
 import { Team } from '../types';
 
 export const Teams: React.FC = () => {
@@ -16,12 +17,7 @@ export const Teams: React.FC = () => {
   const fetchTeams = async () => {
     if (!user) return;
     try {
-      const { data, error } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('name');
-      if (error) throw error;
+      const data = await MatchService.getTeams(user.id);
       setTeams(data || []);
     } catch (err) {
       console.error('Error fetching teams:', err);
@@ -39,10 +35,7 @@ export const Teams: React.FC = () => {
     if (!newTeamName.trim() || !user) return;
 
     try {
-      const { error } = await supabase
-        .from('teams')
-        .insert([{ name: newTeamName.trim(), user_id: user.id }]);
-      if (error) throw error;
+      await MatchService.createTeam(user.id, newTeamName.trim());
       setNewTeamName('');
       fetchTeams();
     } catch (err) {
@@ -93,7 +86,7 @@ export const Teams: React.FC = () => {
                 <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
                   <Users className="w-6 h-6" />
                 </div>
-                <span className="text-lg font-black text-slate-900">{team.name}</span>
+                <span className="text-lg font-black text-slate-900">{team.team_name}</span>
               </div>
               <button 
                 onClick={() => handleDeleteTeam(team.id)}

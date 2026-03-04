@@ -94,6 +94,12 @@ export const Dashboard: React.FC = () => {
                        Manage Teams <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </button>
                     <button 
+                      onClick={() => navigate('/players')}
+                      className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl text-sm font-bold transition-all text-left px-6 flex justify-between items-center group"
+                    >
+                       Manage Players <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                    <button 
                       onClick={() => navigate('/tournaments')}
                       className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl text-sm font-bold transition-all text-left px-6 flex justify-between items-center group"
                     >

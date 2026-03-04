@@ -3,12 +3,14 @@ import { Match } from './types';
 
 // Calculation Helpers for rendering UI
 export const calculateStats = (match: Match) => {
+  const completedOvers = Math.floor(match.balls / 6);
+  const remainingBalls = match.balls % 6;
   return {
-    runs: match.total_runs || 0,
-    wickets: match.total_wickets || 0,
-    overs: match.total_overs?.toFixed(1) || '0.0',
-    extras: 0,
-    totalBalls: Math.floor(match.total_overs || 0) * 6 + Math.round(((match.total_overs || 0) % 1) * 10)
+    runs: match.runs || 0,
+    wickets: match.wickets || 0,
+    overs: `${completedOvers}.${remainingBalls}`,
+    extras: match.extras || 0,
+    totalBalls: match.balls
   };
 };
 

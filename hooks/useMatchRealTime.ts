@@ -27,7 +27,7 @@ export const useMatchRealTime = (matchId: string | undefined) => {
 
     // STEP 5: REALTIME SUBSCRIPTION
     const channel = supabase
-      .channel(`match_${matchId}`)
+      .channel(`match_realtime_${matchId}`)
       .on(
         'postgres_changes',
         {
@@ -37,31 +37,23 @@ export const useMatchRealTime = (matchId: string | undefined) => {
           filter: `id=eq.${matchId}`,
         },
         (payload) => {
-          setMatch(payload.new as Match);
+          if (payload.new) {
+            setMatch(payload.new as Match);
+          }
         }
       )
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'overlay_commands',
           filter: `match_id=eq.${matchId}`,
         },
         (payload) => {
-          setOverlayCommand(payload.new as OverlayCommand);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'overlay_commands',
-          filter: `match_id=eq.${matchId}`,
-        },
-        (payload) => {
-          setOverlayCommand(payload.new as OverlayCommand);
+          if (payload.new) {
+            setOverlayCommand(payload.new as OverlayCommand);
+          }
         }
       )
       .subscribe();

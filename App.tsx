@@ -16,6 +16,7 @@ import { CreateMatch } from './pages/CreateMatch';
 import { Profile } from './pages/Profile';
 import { Teams } from './pages/Teams';
 import { Tournaments } from './pages/Tournaments';
+import { Players } from './pages/Players';
 
 const App: React.FC = () => {
   return (
@@ -72,6 +73,11 @@ const App: React.FC = () => {
             <Route path="/tournaments" element={
               <ProtectedRoute>
                 <Tournaments />
+              </ProtectedRoute>
+            } />
+            <Route path="/players" element={
+              <ProtectedRoute>
+                <Players />
               </ProtectedRoute>
             } />
             

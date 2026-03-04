@@ -11,23 +11,26 @@ export interface User {
 
 export interface Player {
   id: string;
-  name: string;
-  runs: number;
-  ballsFaced: number;
-  fours: number;
-  sixes: number;
-  isOut: boolean;
-  oversBowled: number;
-  ballsBowled: number;
-  runsConceded: number;
-  wicketsTaken: number;
+  user_id: string;
+  team_id: string;
+  player_name: string;
+  jersey_number: number;
+  role: string;
+  created_at: string;
 }
 
 export interface Team {
   id: string;
-  name: string;
-  user_id?: string;
-  tournament_id?: string;
+  user_id: string;
+  team_name: string;
+  created_at: string;
+}
+
+export interface Tournament {
+  id: string;
+  user_id: string;
+  tournament_name: string;
+  created_at: string;
 }
 
 export type ExtraType = 'wide' | 'no-ball' | 'bye' | 'leg-bye' | 'none';
@@ -36,14 +39,14 @@ export type WicketType = 'bowled' | 'caught' | 'lbw' | 'run-out' | 'stumped' | '
 export type MatchType = 'T20' | 'ODI' | 'Test' | 'Custom';
 export type MatchStatus = 'upcoming' | 'live' | 'completed';
 
-export interface Ball {
+export interface BallEvent {
   id: string;
   match_id: string;
-  runs: number;
-  extra_type?: string;
-  is_wicket: boolean;
   over_number: number;
   ball_number: number;
+  runs: number;
+  extra_type?: string;
+  wicket: boolean;
   created_at: string;
 }
 
@@ -51,14 +54,29 @@ export interface Match {
   id: string;
   team_a: string;
   team_b: string;
-  total_runs: number;
-  total_wickets: number;
-  total_overs: number;
-  current_over_balls: number;
+  runs: number;
+  wickets: number;
+  balls: number;
+  overs: number;
+  extras: number;
+  striker: string;
+  non_striker: string;
+  bowler: string;
+  toss_winner: string;
+  toss_decision: string;
+  status: 'live' | 'upcoming' | 'completed';
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  
+  // New fields for professional broadcast
+  tournament_name?: string;
+  series_name?: string;
+  venue?: string;
   match_overs?: number;
-  striker?: string;
-  non_striker?: string;
-  bowler?: string;
+  target?: number;
+  
+  // Legacy fields for backward compatibility if needed, but we'll try to stick to the new ones
   striker_runs?: number;
   striker_balls?: number;
   non_striker_runs?: number;
@@ -66,10 +84,6 @@ export interface Match {
   bowler_wickets?: number;
   bowler_runs?: number;
   bowler_overs?: number;
-  target?: number;
-  created_by: string;
-  status: 'live' | 'upcoming' | 'completed';
-  created_at: string;
 }
 
 export interface OverlayCommand {
@@ -84,10 +98,6 @@ export interface OverlayCommand {
 export interface AppState {
   matches: Match[];
   tournaments: Tournament[];
-}
-
-export interface Tournament {
-  id: string;
-  name: string;
-  user_id: string;
+  teams: Team[];
+  players: Player[];
 }

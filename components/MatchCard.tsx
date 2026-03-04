@@ -100,10 +100,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, canEdit, onDelete }
           <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center justify-center gap-2">
              <div className="flex items-center gap-4 text-xs font-black text-slate-500 uppercase tracking-widest">
                 <Swords className="w-4 h-4 text-emerald-600" />
-                Score: {match.total_runs}/{match.total_wickets}
+                Score: {match.runs}/{match.wickets}
              </div>
              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Overs: {match.total_overs?.toFixed(1) || '0.0'}
+                Overs: {match.overs.toFixed(1)}
              </div>
           </div>
         </div>

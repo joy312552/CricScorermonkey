@@ -1,36 +1,42 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useMatchRealTime } from '../hooks/useMatchRealTime';
-import { Trophy, Swords, BarChart3, TrendingUp, Target } from 'lucide-react';
 import { CenteredScoreboard } from '../components/CenteredScoreboard';
-import { PlayingXIOverlay } from '../components/PlayingXIOverlay';
-import { IndiaPlayingXIOverlay } from '../components/IndiaPlayingXIOverlay';
+import { BroadcastOverlayContainer } from '../components/broadcast/BroadcastOverlayContainer';
 
 export const Overlay: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { match, overlayCommand } = useMatchRealTime(id);
-  const [activeGraphic, setActiveGraphic] = useState<string | null>(null);
-  const [payload, setPayload] = useState<any>({});
+  const [scoreAnimation, setScoreAnimation] = useState<string | null>(null);
+  const prevMatchRef = useRef<any>(null);
 
+  // Handle Score Animations based on match state changes
   useEffect(() => {
-    if (overlayCommand && overlayCommand.visible) {
-      setActiveGraphic(overlayCommand.command);
-      setPayload(overlayCommand.payload || {});
+    if (match && prevMatchRef.current) {
+      const prev = prevMatchRef.current;
+      const runDiff = (match.runs || 0) - (prev.runs || 0);
+      const wicketDiff = (match.wickets || 0) - (prev.wickets || 0);
 
-      // Auto-hide certain graphics after 10 seconds
-      const autoHideCommands = ['TEAM_VS_TEAM', 'MATCH_SUMMARY', 'TOSS_WINNER', 'BATT_SUMMARY', 'BOWL_SUMMARY'];
-      if (autoHideCommands.includes(overlayCommand.command)) {
-        const timer = setTimeout(() => {
-          setActiveGraphic(null);
-        }, 10000);
-        return () => clearTimeout(timer);
+      if (wicketDiff > 0) {
+        triggerAnimation('WICKET');
+      } else if (runDiff === 4) {
+        triggerAnimation('FOUR');
+      } else if (runDiff === 6) {
+        triggerAnimation('SIX');
+      } else if (match.balls > prev.balls) {
+        // Check for extras if balls increased (or if balls didn't increase but runs did, like NB/WD)
+        // Actually NB/WD often don't increase the ball count in some systems, but here they might.
+        // For now, let's stick to the main ones or add explicit extra detection if available.
       }
-    } else if (overlayCommand && !overlayCommand.visible) {
-      setActiveGraphic(null);
     }
-  }, [overlayCommand]);
+    prevMatchRef.current = match;
+  }, [match]);
+
+  const triggerAnimation = (type: string) => {
+    setScoreAnimation(type);
+    setTimeout(() => setScoreAnimation(null), 3000);
+  };
 
   useEffect(() => {
     document.body.style.background = 'transparent';
@@ -41,165 +47,17 @@ export const Overlay: React.FC = () => {
 
   if (!match) return null;
 
-  const renderGraphic = () => {
-    switch (activeGraphic) {
-      case 'TEAM_VS_TEAM':
-        return (
-          <motion.div 
-            key="team_vs_team"
-            initial={{ opacity: 0, y: 100, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 100, scale: 0.9 }}
-            className="fixed inset-0 flex items-center justify-center p-20 z-50 pointer-events-none"
-          >
-            <div className="bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-[4rem] p-16 shadow-[0_80px_160px_-40px_rgba(0,0,0,0.8)] flex items-center gap-20">
-              <div className="text-center space-y-4">
-                <div className="w-32 h-32 bg-white/5 rounded-full flex items-center justify-center mx-auto border border-white/10">
-                  <Trophy className="w-16 h-16 text-emerald-500" />
-                </div>
-                <h2 className="text-6xl font-black text-white tracking-tighter uppercase">{match.team_a}</h2>
-              </div>
-              <div className="text-8xl font-black text-emerald-500 italic opacity-20">VS</div>
-              <div className="text-center space-y-4">
-                <div className="w-32 h-32 bg-white/5 rounded-full flex items-center justify-center mx-auto border border-white/10">
-                  <Swords className="w-16 h-16 text-blue-500" />
-                </div>
-                <h2 className="text-6xl font-black text-white tracking-tighter uppercase">{match.team_b}</h2>
-              </div>
-            </div>
-          </motion.div>
-        );
-
-      case 'MATCH_SUMMARY':
-        return (
-          <motion.div 
-            key="match_summary"
-            initial={{ opacity: 0, x: -100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -100 }}
-            className="fixed left-20 top-1/2 -translate-y-1/2 w-[500px] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-[3rem] p-10 shadow-2xl z-50 pointer-events-none"
-          >
-            <div className="flex items-center gap-4 mb-10 border-b border-white/10 pb-6">
-              <BarChart3 className="w-8 h-8 text-emerald-500" />
-              <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Match Summary</h3>
-            </div>
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400 font-bold uppercase tracking-widest text-sm">{match.team_a}</span>
-                <span className="text-3xl font-black text-white">{match.total_runs}/{match.total_wickets}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400 font-bold uppercase tracking-widest text-sm">Overs</span>
-                <span className="text-3xl font-black text-emerald-500">{match.total_overs.toFixed(1)}</span>
-              </div>
-              {match.target && (
-                <div className="pt-6 border-t border-white/10 flex justify-between items-center">
-                  <span className="text-slate-400 font-bold uppercase tracking-widest text-sm">Target</span>
-                  <span className="text-3xl font-black text-blue-500">{match.target}</span>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        );
-
-      case 'CUSTOM_TEXT':
-        return (
-          <motion.div 
-            key="custom_text"
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-40 left-1/2 -translate-x-1/2 bg-emerald-600 text-white px-12 py-6 rounded-full shadow-2xl z-50 pointer-events-none"
-          >
-            <p className="text-2xl font-black uppercase tracking-widest text-center">{payload.text || ''}</p>
-          </motion.div>
-        );
-
-      case 'PLAYING_XI':
-        return <PlayingXIOverlay key="playing_xi" />;
-
-      case 'INDIA_PLAYING_XI':
-        return <IndiaPlayingXIOverlay key="india_playing_xi" />;
-
-      case 'TOSS_WINNER':
-        return (
-          <motion.div 
-            key="toss_winner"
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-40 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-12 py-6 rounded-xl shadow-2xl z-50 pointer-events-none border border-white/20"
-          >
-            <div className="flex flex-col items-center">
-              <span className="text-xs font-black uppercase tracking-[0.3em] opacity-60 mb-2">Toss Result</span>
-              <p className="text-3xl font-black uppercase tracking-tighter text-center">
-                {match.team_a} WON THE TOSS & ELECTED TO BAT
-              </p>
-            </div>
-          </motion.div>
-        );
-
-      case 'TARGET':
-        return (
-          <motion.div 
-            key="target"
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 100 }}
-            className="fixed right-20 top-1/2 -translate-y-1/2 w-[400px] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 shadow-2xl z-50 pointer-events-none"
-          >
-            <div className="flex flex-col items-center text-center">
-              <Target className="w-12 h-12 text-red-500 mb-4" />
-              <span className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Target Score</span>
-              <h3 className="text-6xl font-black text-white tracking-tighter">{match.target || 'N/A'}</h3>
-              <p className="text-sm font-bold text-slate-500 uppercase mt-4">Required to win in {match.match_overs} overs</p>
-            </div>
-          </motion.div>
-        );
-
-      case 'NEED_RUN':
-        const runsNeeded = (match.target || 0) - match.total_runs;
-        const currentOversNum = match.total_overs;
-        const ballsBowled = Math.floor(currentOversNum) * 6 + Math.round((currentOversNum % 1) * 10);
-        const totalBalls = (match.match_overs || 20) * 6;
-        const ballsRemaining = Math.max(0, totalBalls - ballsBowled);
-        
-        return (
-          <motion.div 
-            key="need_run"
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-40 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-xl border border-white/10 px-12 py-8 rounded-2xl shadow-2xl z-50 pointer-events-none"
-          >
-            <div className="flex flex-col items-center">
-              <TrendingUp className="w-8 h-8 text-emerald-500 mb-3" />
-              <p className="text-4xl font-black text-white uppercase tracking-tighter text-center">
-                {match.team_a} NEED <span className="text-emerald-500">{runsNeeded}</span> RUNS
-              </p>
-              <p className="text-lg font-bold text-slate-400 uppercase tracking-widest mt-1">
-                FROM {ballsRemaining} BALLS
-              </p>
-            </div>
-          </motion.div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none font-sans bg-transparent">
-      {/* Professional Centered Scoreboard (Always Visible) */}
+      {/* International Standard Centered Scoreboard */}
       <CenteredScoreboard 
         teamA={match.team_a}
         teamB={match.team_b}
         striker={match.striker || 'Batter 1'}
         nonStriker={match.non_striker || 'Batter 2'}
         bowler={match.bowler || 'Bowler'}
-        score={`${match.total_runs}-${match.total_wickets}`}
-        overs={match.total_overs.toFixed(1)}
+        score={`${match.runs}-${match.wickets}`}
+        overs={match.overs.toFixed(1)}
         inning="1ST INNING"
         strikerRuns={match.striker_runs || 0}
         strikerBalls={match.striker_balls || 0}
@@ -208,15 +66,17 @@ export const Overlay: React.FC = () => {
         bowlerWickets={match.bowler_wickets || 0}
         bowlerRuns={match.bowler_runs || 0}
         bowlerOvers={(match.bowler_overs || 0).toFixed(1)}
-        crr={(match.total_runs / Math.max(0.1, match.total_overs)).toFixed(2)}
+        crr={(match.runs / Math.max(0.1, match.balls / 6)).toFixed(2)}
         target={match.target}
         matchOvers={match.match_overs || 20}
       />
 
-      {/* Dynamic Overlays */}
-      <AnimatePresence mode="wait">
-        {renderGraphic()}
-      </AnimatePresence>
+      {/* Premium Broadcast Graphics Layer */}
+      <BroadcastOverlayContainer 
+        match={match} 
+        command={overlayCommand} 
+        scoreAnimation={scoreAnimation}
+      />
     </div>
   );
 };

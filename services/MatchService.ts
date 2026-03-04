@@ -1,31 +1,27 @@
 
 import { supabase } from '../supabase';
-import { Match, Ball, OverlayCommand } from '../types';
+import { Match, BallEvent, OverlayCommand, Team, Tournament, Player } from '../types';
 
 export const MatchService = {
-  async createMatch(teamA: string, teamB: string, totalOvers: number, userId: string) {
+  async createMatch(teamA: string, teamB: string, matchOvers: number, userId: string) {
     const { data, error } = await supabase
       .from('matches')
       .insert([{ 
         team_a: teamA, 
         team_b: teamB, 
+        match_overs: matchOvers,
         created_by: userId,
-        total_runs: 0,
-        total_wickets: 0,
-        total_overs: 0,
-        current_over_balls: 0,
-        match_overs: totalOvers,
+        runs: 0,
+        wickets: 0,
+        balls: 0,
+        overs: 0,
         striker: 'Batter 1',
         non_striker: 'Batter 2',
         bowler: 'Bowler',
-        striker_runs: 0,
-        striker_balls: 0,
-        non_striker_runs: 0,
-        non_striker_balls: 0,
-        bowler_wickets: 0,
-        bowler_runs: 0,
-        bowler_overs: 0,
-        status: 'live'
+        status: 'live',
+        tournament_name: 'CricScore Pro League',
+        series_name: 'T20 Series',
+        venue: 'International Stadium'
       }])
       .select()
       .single();
@@ -67,86 +63,150 @@ export const MatchService = {
     return data as Match[];
   },
 
-  async recordBall(matchId: string, match: Match, runs: number, isWicket: boolean, extraType?: string) {
-    const isLegalBall = !['wd', 'nb'].includes(extraType || '');
+  async recordBall(matchId: string, runs: number, isWicket: boolean, extraType?: string) {
+    // 1. Fetch current state with fresh data
+    const { data: match, error: fetchError } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('id', matchId)
+      .single();
     
-    let nextOverBalls = match.current_over_balls || 0;
-    let nextTotalOvers = match.total_overs || 0;
-    let striker = match.striker || 'Batter 1';
-    let nonStriker = match.non_striker || 'Batter 2';
-
-    // 1. Handle Strike Rotation (Odd runs)
-    // Wides/No-balls: runs usually include the extra + what was run.
-    // If it's a wide/nb, the runs recorded might be 1 (extra) + runs.
-    // Standard: 1 run on legal ball = swap. 1 run on wide = swap if they ran.
-    // Let's assume 'runs' passed is the total runs for that ball.
-    // If runs are odd, swap strike.
-    if (runs % 2 !== 0) {
-      [striker, nonStriker] = [nonStriker, striker];
+    if (fetchError || !match) {
+      console.error('Fetch error before scoring:', fetchError);
+      throw new Error('Could not find match to update');
     }
 
-    // 2. Handle Overs
-    if (isLegalBall) {
-      nextOverBalls += 1;
-      if (nextOverBalls >= 6) {
-        nextTotalOvers = Math.floor(nextTotalOvers) + 1;
-        nextOverBalls = 0;
-        [striker, nonStriker] = [nonStriker, striker];
-      } else {
-        nextTotalOvers = Math.floor(nextTotalOvers) + (nextOverBalls / 10);
-      }
-    }
+    // 2. Calculate Logic
+    const isLegalBall = !['wd', 'nb'].includes(extraType || '');
+    const nextBalls = isLegalBall ? (match.balls || 0) + 1 : (match.balls || 0);
+    
+    // Cricket notation: 6 balls = 1.0, 7 balls = 1.1
+    const completedOvers = Math.floor(nextBalls / 6);
+    const remainingBalls = nextBalls % 6;
+    const nextOvers = parseFloat(`${completedOvers}.${remainingBalls}`);
 
-    // Helper to increment bowler overs
-    const incrementBowlerOvers = (current: number) => {
-      const overs = Math.floor(current);
-      const balls = Math.round((current % 1) * 10) + 1;
-      if (balls >= 6) return overs + 1;
-      return overs + (balls / 10);
-    };
+    console.log(`[SCORING] Match: ${matchId} | Before: ${match.balls} | After: ${nextBalls} | Legal: ${isLegalBall}`);
 
-    // 3. Insert ball record
+    // 3. Insert Ball Event
     const { error: ballError } = await supabase
-      .from('balls')
+      .from('ball_events')
       .insert([{
         match_id: matchId,
-        runs,
-        extra_type: extraType,
-        is_wicket: isWicket,
-        over_number: Math.floor(nextTotalOvers),
-        ball_number: nextOverBalls
+        runs: runs,
+        extra_type: extraType || 'none',
+        wicket: isWicket,
+        over_number: Math.floor((match.balls || 0) / 6),
+        ball_number: ((match.balls || 0) % 6) + 1
       }]);
 
-    if (ballError) throw ballError;
+    if (ballError) {
+      console.error('Ball insertion failed. Details:', {
+        message: ballError.message,
+        code: ballError.code,
+        hint: ballError.hint,
+        details: ballError.details
+      });
+      
+      // If it's a cache error, we throw a specific message
+      if (ballError.code === 'PGRST205') {
+        throw new Error('Database API cache is stale. Please refresh the page or wait 30 seconds.');
+      }
+      throw ballError;
+    }
 
-    // 4. Update match score
+    // 4. Update Summary Stats
+    let striker = match.striker;
+    let nonStriker = match.non_striker;
+    let strikerRuns = match.striker_runs || 0;
+    let strikerBalls = match.striker_balls || 0;
+    let nonStrikerRuns = match.non_striker_runs || 0;
+    let nonStrikerBalls = match.non_striker_balls || 0;
+    let bowlerRuns = match.bowler_runs || 0;
+    let bowlerWickets = match.bowler_wickets || 0;
+    let bowlerOvers = match.bowler_overs || 0;
+    let totalExtras = match.extras || 0;
+
+    // Batter runs (only if not byes/legbyes)
+    const batterRuns = (extraType === 'byes' || extraType === 'lb') ? 0 : runs;
+    strikerRuns += batterRuns;
+    if (isLegalBall) strikerBalls += 1;
+
+    // Bowler runs (only if not byes/legbyes)
+    const bowlerRunsToAdd = (extraType === 'byes' || extraType === 'lb') ? 0 : runs;
+    bowlerRuns += bowlerRunsToAdd;
+    if (isWicket) bowlerWickets += 1;
+    
+    if (isLegalBall) {
+      const bOvers = Math.floor(bowlerOvers);
+      const bBalls = Math.round((bowlerOvers % 1) * 10) + 1;
+      if (bBalls >= 6) bowlerOvers = bOvers + 1;
+      else bowlerOvers = bOvers + (bBalls / 10);
+    }
+
+    if (extraType && extraType !== 'none') {
+      totalExtras += runs;
+    }
+
+    // Strike Rotation
+    if (runs % 2 !== 0) {
+      [striker, nonStriker] = [nonStriker, striker];
+      [strikerRuns, nonStrikerRuns] = [nonStrikerRuns, strikerRuns];
+      [strikerBalls, nonStrikerBalls] = [nonStrikerBalls, strikerBalls];
+    }
+
+    // Over End Strike Rotation
+    if (isLegalBall && nextBalls % 6 === 0) {
+      [striker, nonStriker] = [nonStriker, striker];
+      [strikerRuns, nonStrikerRuns] = [nonStrikerRuns, strikerRuns];
+      [strikerBalls, nonStrikerBalls] = [nonStrikerBalls, strikerBalls];
+    }
+
+    // 5. Final Update
     const { data: updatedMatch, error: matchError } = await supabase
       .from('matches')
       .update({
-        total_runs: (match.total_runs || 0) + runs,
-        total_wickets: (match.total_wickets || 0) + (isWicket ? 1 : 0),
-        total_overs: nextTotalOvers,
-        current_over_balls: nextOverBalls,
+        runs: (match.runs || 0) + runs,
+        wickets: (match.wickets || 0) + (isWicket ? 1 : 0),
+        balls: nextBalls,
+        overs: nextOvers,
+        extras: totalExtras,
         striker,
         non_striker: nonStriker,
-        striker_runs: (match.striker_runs || 0) + runs,
-        striker_balls: (match.striker_balls || 0) + (isLegalBall ? 1 : 0),
-        bowler_runs: (match.bowler_runs || 0) + runs,
-        bowler_wickets: (match.bowler_wickets || 0) + (isWicket ? 1 : 0),
-        bowler_overs: isLegalBall ? incrementBowlerOvers(match.bowler_overs || 0) : (match.bowler_overs || 0)
+        striker_runs: strikerRuns,
+        striker_balls: strikerBalls,
+        non_striker_runs: nonStrikerRuns,
+        non_striker_balls: nonStrikerBalls,
+        bowler_runs: bowlerRuns,
+        bowler_wickets: bowlerWickets,
+        bowler_overs: bowlerOvers,
+        updated_at: new Date().toISOString()
       })
       .eq('id', matchId)
       .select()
       .single();
 
-    if (matchError) throw matchError;
+    if (matchError) {
+      console.error('Match summary update failed:', matchError);
+      throw matchError;
+    }
     return updatedMatch as Match;
+  },
+
+  async updateMatchPlayers(matchId: string, updates: Partial<Match>) {
+    const { data, error } = await supabase
+      .from('matches')
+      .update(updates)
+      .eq('id', matchId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as Match;
   },
 
   async undoLastBall(matchId: string) {
     // 1. Get last ball
     const { data: lastBall, error: ballFetchError } = await supabase
-      .from('balls')
+      .from('ball_events')
       .select('*')
       .eq('match_id', matchId)
       .order('created_at', { ascending: false })
@@ -164,53 +224,96 @@ export const MatchService = {
 
     if (matchFetchError || !match) return;
 
-    // 3. Calculate previous state
     const isLegalBall = !['wd', 'nb'].includes(lastBall.extra_type || '');
-    let prevOverBalls = match.current_over_balls || 0;
-    let prevTotalOvers = match.total_overs || 0;
-    let striker = match.striker;
-    let nonStriker = match.non_striker;
+    const prevBalls = isLegalBall ? Math.max(0, (match.balls || 0) - 1) : (match.balls || 0);
+    
+    const completedOvers = Math.floor(prevBalls / 6);
+    const remainingBalls = prevBalls % 6;
+    const prevOvers = parseFloat(`${completedOvers}.${remainingBalls}`);
 
-    // Reverse strike rotation if runs were odd
-    if (lastBall.runs % 2 !== 0) {
-      [striker, nonStriker] = [nonStriker, striker];
-    }
-
-    if (isLegalBall) {
-      if (prevOverBalls === 0) {
-        // Was end of over, reverse over completion strike swap too
-        [striker, nonStriker] = [nonStriker, striker];
-        prevTotalOvers = Math.floor(prevTotalOvers) - 1 + 0.5;
-        prevOverBalls = 5;
-      } else {
-        prevOverBalls -= 1;
-        prevTotalOvers = Math.floor(prevTotalOvers) + (prevOverBalls / 10);
-      }
-    }
-
-    // 4. Update match
+    // 3. Update match
     await supabase
       .from('matches')
       .update({
-        total_runs: Math.max(0, (match.total_runs || 0) - lastBall.runs),
-        total_wickets: Math.max(0, (match.total_wickets || 0) - (lastBall.is_wicket ? 1 : 0)),
-        total_overs: prevTotalOvers,
-        current_over_balls: prevOverBalls,
-        striker,
-        non_striker: nonStriker,
-        striker_runs: Math.max(0, (match.striker_runs || 0) - lastBall.runs),
-        striker_balls: Math.max(0, (match.striker_balls || 0) - (isLegalBall ? 1 : 0)),
-        bowler_runs: Math.max(0, (match.bowler_runs || 0) - lastBall.runs),
-        bowler_wickets: Math.max(0, (match.bowler_wickets || 0) - (lastBall.is_wicket ? 1 : 0)),
-        bowler_overs: isLegalBall ? Math.max(0, (match.bowler_overs || 0) - 0.1) : (match.bowler_overs || 0)
+        runs: Math.max(0, (match.runs || 0) - lastBall.runs),
+        wickets: Math.max(0, (match.wickets || 0) - (lastBall.wicket ? 1 : 0)),
+        balls: prevBalls,
+        overs: prevOvers,
+        updated_at: new Date().toISOString()
       })
       .eq('id', matchId);
 
-    // 5. Delete ball
+    // 4. Delete ball
     await supabase
-      .from('balls')
+      .from('ball_events')
       .delete()
       .eq('id', lastBall.id);
+  },
+
+  // Team Management
+  async getTeams(userId: string): Promise<Team[]> {
+    const { data, error } = await supabase
+      .from('teams')
+      .select('*')
+      .eq('user_id', userId);
+    if (error) throw error;
+    return data as Team[];
+  },
+
+  async createTeam(userId: string, teamName: string) {
+    const { data, error } = await supabase
+      .from('teams')
+      .insert([{ user_id: userId, team_name: teamName }])
+      .select()
+      .single();
+    if (error) throw error;
+    return data as Team;
+  },
+
+  // Tournament Management
+  async getTournaments(userId: string): Promise<Tournament[]> {
+    const { data, error } = await supabase
+      .from('tournaments')
+      .select('*')
+      .eq('user_id', userId);
+    if (error) throw error;
+    return data as Tournament[];
+  },
+
+  async createTournament(userId: string, tournamentName: string) {
+    const { data, error } = await supabase
+      .from('tournaments')
+      .insert([{ user_id: userId, tournament_name: tournamentName }])
+      .select()
+      .single();
+    if (error) throw error;
+    return data as Tournament;
+  },
+
+  // Player Management
+  async getPlayers(userId: string): Promise<Player[]> {
+    const { data, error } = await supabase
+      .from('players')
+      .select('*')
+      .eq('user_id', userId);
+    if (error) throw error;
+    return data as Player[];
+  },
+
+  async createPlayer(userId: string, teamId: string, playerName: string, jerseyNumber: number, role: string) {
+    const { data, error } = await supabase
+      .from('players')
+      .insert([{ 
+        user_id: userId, 
+        team_id: teamId, 
+        player_name: playerName, 
+        jersey_number: jerseyNumber, 
+        role 
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+    return data as Player;
   },
 
   async sendOverlayCommand(matchId: string, command: string, payload: any = {}) {
