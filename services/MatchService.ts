@@ -19,6 +19,8 @@ export const MatchService = {
         non_striker: 'Batter 2',
         bowler: 'Bowler',
         status: 'live',
+        fours: 0,
+        sixes: 0,
         tournament_name: 'CricScore Pro League',
         series_name: 'T20 Series',
         venue: 'International Stadium'
@@ -125,11 +127,16 @@ export const MatchService = {
     let bowlerWickets = match.bowler_wickets || 0;
     let bowlerOvers = match.bowler_overs || 0;
     let totalExtras = match.extras || 0;
+    let fours = match.fours || 0;
+    let sixes = match.sixes || 0;
 
     // Batter runs (only if not byes/legbyes)
     const batterRuns = (extraType === 'byes' || extraType === 'lb') ? 0 : runs;
     strikerRuns += batterRuns;
     if (isLegalBall) strikerBalls += 1;
+
+    if (batterRuns === 4) fours += 1;
+    if (batterRuns === 6) sixes += 1;
 
     // Bowler runs (only if not byes/legbyes)
     const bowlerRunsToAdd = (extraType === 'byes' || extraType === 'lb') ? 0 : runs;
@@ -179,6 +186,8 @@ export const MatchService = {
         bowler_runs: bowlerRuns,
         bowler_wickets: bowlerWickets,
         bowler_overs: bowlerOvers,
+        fours,
+        sixes,
         updated_at: new Date().toISOString()
       })
       .eq('id', matchId)

@@ -170,7 +170,10 @@ export const Scorer: React.FC = () => {
     { label: 'DRS', cmd: 'DRS_REVIEW' },
     { label: 'SPOTLIGHT', cmd: 'PLAYER_SPOTLIGHT' },
     { label: 'TOSS', cmd: 'TOSS_WINNER' },
+    { label: 'BOUNDARIES', cmd: 'BOUNDARY_TRACKER' },
   ];
+
+  const isBoundaryTrackerActive = overlayCommand?.visible && overlayCommand.command === 'BOUNDARY_TRACKER';
 
   return (
     <div className="h-screen w-screen bg-white text-slate-900 font-sans overflow-hidden flex flex-col">
@@ -317,6 +320,59 @@ export const Scorer: React.FC = () => {
                 );
               })}
             </div>
+
+            {/* Boundary Tracker Specific Controls */}
+            {isBoundaryTrackerActive && (
+              <div className="mt-4 p-3 bg-pink-50 border border-pink-100 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-black text-pink-600 uppercase tracking-widest">Boundary Tracker Controls</span>
+                  <button 
+                    onClick={() => updateMatch({ fours: 0, sixes: 0 })}
+                    className="text-[8px] font-black text-pink-400 hover:text-pink-600 uppercase transition-colors"
+                  >
+                    Reset All
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-pink-400 uppercase">Fours</label>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => updateMatch({ fours: Math.max(0, (match.fours || 0) - 1) })}
+                        className="w-6 h-6 bg-white border border-pink-200 rounded flex items-center justify-center text-pink-600 font-bold"
+                      >
+                        -
+                      </button>
+                      <span className="text-sm font-black text-pink-600 w-8 text-center">{match.fours || 0}</span>
+                      <button 
+                        onClick={() => updateMatch({ fours: (match.fours || 0) + 1 })}
+                        className="w-6 h-6 bg-white border border-pink-200 rounded flex items-center justify-center text-pink-600 font-bold"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-pink-400 uppercase">Sixes</label>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => updateMatch({ sixes: Math.max(0, (match.sixes || 0) - 1) })}
+                        className="w-6 h-6 bg-white border border-pink-200 rounded flex items-center justify-center text-pink-600 font-bold"
+                      >
+                        -
+                      </button>
+                      <span className="text-sm font-black text-pink-600 w-8 text-center">{match.sixes || 0}</span>
+                      <button 
+                        onClick={() => updateMatch({ sixes: (match.sixes || 0) + 1 })}
+                        className="w-6 h-6 bg-white border border-pink-200 rounded flex items-center justify-center text-pink-600 font-bold"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

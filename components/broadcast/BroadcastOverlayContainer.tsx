@@ -12,6 +12,7 @@ import { Partnership } from './Partnership';
 import { StatPanels } from './StatPanels';
 import { SpecialEvents } from './SpecialEvents';
 import { ScoreSplash } from './ScoreSplash';
+import { BoundaryTracker } from './BoundaryTracker';
 
 interface BroadcastOverlayContainerProps {
   match: Match;
@@ -52,6 +53,7 @@ export const BroadcastOverlayContainer: React.FC<BroadcastOverlayContainerProps>
         {activeCmd === 'PARTNERSHIP' && <Partnership key="partner" match={match} />}
         {activeCmd === 'SHOW_CRR' && <StatPanels key="crr" match={match} type="CRR" />}
         {activeCmd === 'SHOW_EXTRA' && <StatPanels key="extra" match={match} type="EXTRA" />}
+        {activeCmd === 'BOUNDARY_TRACKER' && <BoundaryTracker key="boundary" match={match} scoreAnimation={scoreAnimation} />}
         {[
           'POWERPLAY', 
           'TIMEOUT', 

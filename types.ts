@@ -84,6 +84,8 @@ export interface Match {
   bowler_wickets?: number;
   bowler_runs?: number;
   bowler_overs?: number;
+  fours?: number;
+  sixes?: number;
 }
 
 export interface OverlayCommand {
