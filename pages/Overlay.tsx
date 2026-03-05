@@ -89,11 +89,13 @@ export const Overlay: React.FC = () => {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none font-sans bg-transparent">
       {/* Professional Lower Third Overlay */}
-      <LowerThirdOverlay 
-        match={match} 
-        recentBalls={ballEvents} 
-        scoreAnimation={scoreAnimation} 
-      />
+      {overlayCommand?.visible && overlayCommand.command === 'DEFAULT_SCOREBOARD' && (
+        <LowerThirdOverlay 
+          match={match} 
+          recentBalls={ballEvents} 
+          scoreAnimation={scoreAnimation} 
+        />
+      )}
 
       {/* International Standard Centered Scoreboard (Optional, can be toggled via overlayCommand) */}
       {overlayCommand?.type === 'SCOREBOARD' && (

@@ -16,7 +16,8 @@ import {
   AlertCircle,
   Undo2,
   MoreHorizontal,
-  LogOut
+  LogOut,
+  ArrowRightCircle
 } from 'lucide-react';
 import { useMatchRealTime } from '../hooks/useMatchRealTime';
 import { MatchService } from '../services/MatchService';
@@ -31,6 +32,7 @@ export const Scorer: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDebouncing, setIsDebouncing] = useState(false);
   const [activeModal, setActiveModal] = useState<'batter' | 'bowler' | 'settings' | null>(null);
+  const [isThemesOpen, setIsThemesOpen] = useState(false);
   const [settingsForm, setSettingsForm] = useState({ 
     team_a: '', 
     team_b: '', 
@@ -96,6 +98,16 @@ export const Scorer: React.FC = () => {
     </div>
   );
 
+  const handleThemeChange = async (theme: string) => {
+    if (!match) return;
+    try {
+      await MatchService.updateTheme(match.id, theme);
+      localStorage.setItem('scoreboardTheme', theme);
+    } catch (err) {
+      console.error('Theme update error:', err);
+    }
+  };
+
   const handleScore = async (runs: number, isWicket: boolean = false, extraType?: string) => {
     if (isProcessing || isDebouncing || !match) return;
     
@@ -129,6 +141,34 @@ export const Scorer: React.FC = () => {
     }
   };
 
+  const handleNextInnings = async () => {
+    if (isProcessing || !match) return;
+    if (window.confirm('Are you sure you want to start the next innings? This will reset current score but keep match history.')) {
+      setIsProcessing(true);
+      try {
+        await MatchService.updateMatchPlayers(match.id, {
+          current_innings: 2,
+          runs: 0,
+          wickets: 0,
+          balls: 0,
+          overs: 0,
+          striker_runs: 0,
+          striker_balls: 0,
+          non_striker_runs: 0,
+          non_striker_balls: 0,
+          bowler_runs: 0,
+          bowler_wickets: 0,
+          bowler_overs: 0,
+          target: match.runs + 1
+        });
+      } catch (err) {
+        console.error('Next innings error:', err);
+      } finally {
+        setIsProcessing(false);
+      }
+    }
+  };
+
   const sendCommand = async (command: string, payload: any = {}) => {
     try {
       if (overlayCommand?.visible && overlayCommand.command === command) {
@@ -150,15 +190,17 @@ export const Scorer: React.FC = () => {
   ];
 
   const graphicsButtons = [
-    { label: 'TEAM VS', cmd: 'TEAM_VS_TEAM' },
+    { label: 'DEFAULT', cmd: 'DEFAULT_SCOREBOARD' },
+    { label: 'TEAM VS', cmd: 'TEAM_VS' },
     { label: 'SUMMARY', cmd: 'MATCH_SUMMARY' },
     { label: 'PLAYING XI', cmd: 'PLAYING_XI' },
-    { label: 'INDIA XI', cmd: 'INDIA_PLAYING_XI' },
     { label: 'BATT CARD', cmd: 'BATT_SUMMARY' },
-    { label: 'BALLS', cmd: 'BALL_SUMMARY' },
+    { label: 'Bowling card', cmd: 'BALL_SUMMARY' },
+    { label: 'Bar Stat', cmd: 'BAR_STAT' },
+    { label: 'Line Stat', cmd: 'LINE_STAT' },
     { label: 'TARGET', cmd: 'TARGET' },
     { label: 'NEED', cmd: 'NEED_RUN' },
-    { label: 'PARTNER', cmd: 'PARTNERSHIP' },
+    { label: 'PARTNERSHIP', cmd: 'PARTNERSHIP' },
     { label: 'CRR/RRR', cmd: 'SHOW_CRR' },
     { label: 'EXTRAS', cmd: 'SHOW_EXTRA' },
     { label: 'POWERPLAY', cmd: 'POWERPLAY' },
@@ -275,6 +317,9 @@ export const Scorer: React.FC = () => {
             <button onClick={handleUndo} className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1 shadow-sm">
               <Undo2 className="w-3 h-3" /> Undo
             </button>
+            <button onClick={handleNextInnings} className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-blue-500 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1 shadow-sm">
+              <ArrowRightCircle className="w-3 h-3" /> Next Innings
+            </button>
             <button onClick={() => setActiveModal('batter')} className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">
               Batter
             </button>
@@ -374,6 +419,42 @@ export const Scorer: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Themes Section */}
+        <div className="shrink-0 border-t border-slate-100 pt-2 mt-2">
+          <button 
+            onClick={() => setIsThemesOpen(!isThemesOpen)}
+            className="w-full flex items-center justify-between px-1 py-1 hover:bg-slate-50 rounded transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Tv className="w-3 h-3 text-blue-600" />
+              <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Themes</span>
+            </div>
+            <MoreHorizontal className={`w-3 h-3 text-slate-400 transition-transform ${isThemesOpen ? 'rotate-90' : ''}`} />
+          </button>
+
+          {isThemesOpen && (
+            <div className="mt-2 space-y-1 px-1 pb-2">
+              {['theme1', 'theme2', 'theme3'].map((t, idx) => {
+                const isActive = (match.overlay_theme || localStorage.getItem('scoreboardTheme') || 'theme1') === t;
+                return (
+                  <button
+                    key={t}
+                    onClick={() => handleThemeChange(t)}
+                    className={`w-full h-10 rounded-lg text-xs font-bold transition-all px-3 flex items-center justify-between ${
+                      isActive 
+                        ? "bg-blue-600 text-white shadow-md" 
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    <span>Theme {idx + 1}</span>
+                    {isActive && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

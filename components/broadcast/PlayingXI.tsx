@@ -2,78 +2,109 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Match } from '../../types';
-import { Users } from 'lucide-react';
 
-export const PlayingXI: React.FC<{ match: Match, isIndia?: boolean }> = ({ match, isIndia }) => {
-  // Mock players for now, in real app we'd fetch from match.playing_xi
-  const players = [
-    { name: 'Rohit Sharma', role: 'Captain', no: 45 },
-    { name: 'Shubman Gill', role: 'Batsman', no: 77 },
-    { name: 'Virat Kohli', role: 'Batsman', no: 18 },
-    { name: 'Shreyas Iyer', role: 'Batsman', no: 96 },
-    { name: 'KL Rahul', role: 'WK', no: 1 },
-    { name: 'Hardik Pandya', role: 'All-rounder', no: 33 },
-    { name: 'Ravindra Jadeja', role: 'All-rounder', no: 8 },
-    { name: 'Kuldeep Yadav', role: 'Bowler', no: 23 },
-    { name: 'Jasprit Bumrah', role: 'Bowler', no: 93 },
-    { name: 'Mohammed Shami', role: 'Bowler', no: 11 },
-    { name: 'Mohammed Siraj', role: 'Bowler', no: 73 },
+export const PlayingXI: React.FC<{ match: Match }> = ({ match }) => {
+  // Mock players for both teams
+  const teamAPlayers = [
+    { name: 'ROHIT SHARMA', no: 45, role: 'C' },
+    { name: 'SHUBMAN GILL', no: 77, role: '' },
+    { name: 'VIRAT KOHLI', no: 18, role: '' },
+    { name: 'SHREYAS IYER', no: 96, role: '' },
+    { name: 'KL RAHUL', no: 1, role: 'WK' },
+    { name: 'HARDIK PANDYA', no: 33, role: '' },
+    { name: 'RAVINDRA JADEJA', no: 8, role: '' },
+    { name: 'KULDEEP YADAV', no: 23, role: '' },
+    { name: 'JASPRIT BUMRAH', no: 93, role: '' },
+    { name: 'MOHAMMED SHAMI', no: 11, role: '' },
+    { name: 'MOHAMMED SIRAJ', no: 73, role: '' },
   ];
+
+  const teamBPlayers = [
+    { name: 'DAVID WARNER', no: 31, role: '' },
+    { name: 'TRAVIS HEAD', no: 62, role: '' },
+    { name: 'MITCHELL MARSH', no: 8, role: '' },
+    { name: 'STEVE SMITH', no: 49, role: '' },
+    { name: 'MARNUS LABUSCHAGNE', no: 33, role: '' },
+    { name: 'GLENN MAXWELL', no: 32, role: '' },
+    { name: 'JOSH INGLIS', no: 48, role: 'WK' },
+    { name: 'PAT CUMMINS', no: 30, role: 'C' },
+    { name: 'MITCHELL STARC', no: 56, role: '' },
+    { name: 'ADAM ZAMPA', no: 88, role: '' },
+    { name: 'JOSH HAZLEWOOD', no: 38, role: '' },
+  ];
+
+  const renderPlayerRow = (player: any, index: number, teamColor: string) => (
+    <motion.div 
+      key={index}
+      initial={{ x: teamColor === 'blue' ? -50 : 50, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ delay: 0.5 + (index * 0.05), duration: 0.4 }}
+      className="flex items-center justify-between px-6 py-2.5 bg-white/5 border-b border-white/5 last:border-0 hover:bg-white/10 transition-colors group"
+    >
+      <div className="flex items-center gap-4">
+        {/* Jersey Icon Placeholder */}
+        <div className={`w-8 h-8 rounded-sm flex items-center justify-center relative overflow-hidden ${teamColor === 'blue' ? 'bg-blue-600' : 'bg-yellow-500'}`}>
+          <div className="absolute inset-0 bg-gradient-to-tr from-black/20 to-transparent" />
+          <span className="text-white font-black text-[10px] z-10">{player.no}</span>
+        </div>
+        <span className="text-white font-black text-lg uppercase tracking-tighter group-hover:text-cyan-400 transition-colors">
+          {player.name}
+          {player.role && <span className="ml-2 text-[10px] text-cyan-400 font-bold">({player.role})</span>}
+        </span>
+      </div>
+      <span className="text-white/30 font-black text-sm italic">#{player.no}</span>
+    </motion.div>
+  );
 
   return (
     <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="absolute inset-0 flex items-center justify-center bg-slate-950/90 backdrop-blur-2xl"
+      initial={{ y: '100%', opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: '100%', opacity: 0 }}
+      transition={{ type: 'spring', damping: 25, stiffness: 120 }}
+      className="absolute inset-0 flex items-center justify-center z-[100] pointer-events-none select-none font-sans italic p-12"
     >
-      <div className="w-full max-w-6xl h-[80vh] flex gap-12">
-        {/* Left: Team Info */}
-        <motion.div 
-          initial={{ x: -100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          className="w-1/3 flex flex-col justify-center gap-8"
-        >
-          <div className={`w-32 h-32 ${isIndia ? 'bg-orange-600' : 'bg-blue-600'} rounded-3xl flex items-center justify-center shadow-2xl border-4 border-white/20`}>
-            <span className="text-white text-6xl font-black italic">{isIndia ? 'I' : match.team_a.charAt(0)}</span>
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-6xl font-black text-white uppercase tracking-tighter leading-none">
-              {isIndia ? 'INDIA' : match.team_a}
-            </h2>
-            <p className="text-2xl font-bold text-slate-400 uppercase tracking-widest">Playing XI</p>
-          </div>
-          <div className="h-1 w-24 bg-emerald-500" />
-        </motion.div>
-
-        {/* Right: Players List */}
-        <div className="flex-1 grid grid-cols-1 gap-3 overflow-y-auto custom-scrollbar pr-6">
-          {players.map((player, i) => (
-            <motion.div 
-              key={player.name}
-              initial={{ x: 100, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: i * 0.05 }}
-              className="flex items-center justify-between p-5 glass-effect rounded-2xl group hover:bg-white/10 transition-colors"
-            >
-              <div className="flex items-center gap-6">
-                <span className="text-2xl font-black text-white/20 group-hover:text-emerald-500 transition-colors">
-                  {player.no.toString().padStart(2, '0')}
-                </span>
-                <div className="flex flex-col">
-                  <span className="text-2xl font-black text-white uppercase tracking-tighter">{player.name}</span>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{player.role}</span>
-                </div>
-              </div>
-              {player.role === 'Captain' && (
-                <span className="px-4 py-1 bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest rounded-full">Captain</span>
-              )}
-              {player.role === 'WK' && (
-                <span className="px-4 py-1 bg-blue-500 text-white font-black text-[10px] uppercase tracking-widest rounded-full">Wicketkeeper</span>
-              )}
-            </motion.div>
-          ))}
+      <div className="w-full max-w-6xl bg-gradient-to-br from-[#0A1128] to-[#1A237E] rounded-lg overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border-2 border-white/10 relative flex flex-col">
+        {/* Glossy Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none" />
+        
+        {/* Header */}
+        <div className="bg-[#0A1128] py-4 px-12 border-b-2 border-white/10 flex items-center justify-center relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-[-20deg] animate-pulse" />
+          <h2 className="text-white font-black text-4xl uppercase tracking-tighter drop-shadow-lg z-10">PLAYING XI</h2>
         </div>
+
+        {/* Content */}
+        <div className="flex-1 grid grid-cols-2 gap-px bg-white/10">
+          {/* Team A Column */}
+          <div className="bg-[#0A1128]/40 backdrop-blur-md flex flex-col">
+            <div className="bg-blue-900/40 py-4 px-8 flex items-center gap-4 border-b border-white/10">
+              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg border-2 border-white/20">
+                <span className="text-white text-2xl font-black">{match.team_a.charAt(0)}</span>
+              </div>
+              <h3 className="text-white font-black text-3xl uppercase tracking-tighter">{match.team_a}</h3>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              {teamAPlayers.map((p, i) => renderPlayerRow(p, i, 'blue'))}
+            </div>
+          </div>
+
+          {/* Team B Column */}
+          <div className="bg-[#0A1128]/40 backdrop-blur-md flex flex-col border-l border-white/10">
+            <div className="bg-yellow-900/20 py-4 px-8 flex items-center gap-4 border-b border-white/10">
+              <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center shadow-lg border-2 border-white/20">
+                <span className="text-white text-2xl font-black">{match.team_b.charAt(0)}</span>
+              </div>
+              <h3 className="text-white font-black text-3xl uppercase tracking-tighter">{match.team_b}</h3>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              {teamBPlayers.map((p, i) => renderPlayerRow(p, i, 'yellow'))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Accent */}
+        <div className="h-2 bg-gradient-to-r from-blue-600 via-cyan-400 to-yellow-500" />
       </div>
     </motion.div>
   );

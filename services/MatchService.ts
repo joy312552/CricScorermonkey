@@ -19,6 +19,7 @@ export const MatchService = {
         non_striker: 'Batter 2',
         bowler: 'Bowler',
         status: 'live',
+        current_innings: 1,
         fours: 0,
         sixes: 0,
         tournament_name: 'CricScore Pro League',
@@ -65,6 +66,18 @@ export const MatchService = {
     return data as Match[];
   },
 
+  async updateTheme(matchId: string, theme: string) {
+    const { data, error } = await supabase
+      .from('matches')
+      .update({ overlay_theme: theme })
+      .eq('id', matchId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data as Match;
+  },
+
   async recordBall(matchId: string, runs: number, isWicket: boolean, extraType?: string) {
     // 1. Fetch current state with fresh data
     const { data: match, error: fetchError } = await supabase
@@ -98,7 +111,8 @@ export const MatchService = {
         extra_type: extraType || 'none',
         wicket: isWicket,
         over_number: Math.floor((match.balls || 0) / 6),
-        ball_number: ((match.balls || 0) % 6) + 1
+        ball_number: ((match.balls || 0) % 6) + 1,
+        innings: match.current_innings || 1
       }]);
 
     if (ballError) {
@@ -342,6 +356,16 @@ export const MatchService = {
       .from('overlay_commands')
       .update({ visible: false })
       .eq('match_id', matchId);
+  },
+
+  async getBallEvents(matchId: string): Promise<BallEvent[]> {
+    const { data, error } = await supabase
+      .from('ball_events')
+      .select('*')
+      .eq('match_id', matchId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return data as BallEvent[];
   },
 
   async deleteMatch(matchId: string) {

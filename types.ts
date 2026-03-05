@@ -47,6 +47,7 @@ export interface BallEvent {
   runs: number;
   extra_type?: string;
   wicket: boolean;
+  innings: number;
   created_at: string;
 }
 
@@ -65,6 +66,7 @@ export interface Match {
   toss_winner: string;
   toss_decision: string;
   status: 'live' | 'upcoming' | 'completed';
+  current_innings: number;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -86,6 +88,7 @@ export interface Match {
   bowler_overs?: number;
   fours?: number;
   sixes?: number;
+  overlay_theme?: string;
 }
 
 export interface OverlayCommand {

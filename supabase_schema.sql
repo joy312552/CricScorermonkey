@@ -30,6 +30,10 @@ CREATE TABLE matches (
   venue text DEFAULT 'International Stadium',
   match_overs integer DEFAULT 20,
   target integer DEFAULT 0,
+  current_innings integer DEFAULT 1,
+  fours integer DEFAULT 0,
+  sixes integer DEFAULT 0,
+  overlay_theme text DEFAULT 'default',
   
   -- Player specific stats
   striker_runs integer DEFAULT 0,
@@ -54,6 +58,7 @@ CREATE TABLE ball_events (
   runs integer DEFAULT 0,
   extra_type text DEFAULT 'none',
   wicket boolean DEFAULT false,
+  innings integer DEFAULT 1,
   created_at timestamp with time zone DEFAULT now()
 );
 
