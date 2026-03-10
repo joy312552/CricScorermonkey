@@ -17,49 +17,75 @@ import {
   Undo2,
   MoreHorizontal,
   LogOut,
-  ArrowRightCircle
+  ArrowRightCircle,
+  UserPlus,
+  X
 } from 'lucide-react';
 import { useMatchRealTime } from '../hooks/useMatchRealTime';
+import { supabase } from '../supabase';
 import { MatchService } from '../services/MatchService';
-import { Match } from '../types';
+import { Match, Player, DismissalType } from '../types';
 
 export const Scorer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { match: remoteMatch, overlayCommand, loading } = useMatchRealTime(id);
   const [match, setMatch] = useState<Match | null>(null);
-  const [customText, setCustomText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDebouncing, setIsDebouncing] = useState(false);
-  const [activeModal, setActiveModal] = useState<'batter' | 'bowler' | 'settings' | null>(null);
+  const [activeModal, setActiveModal] = useState<'batter' | 'bowler' | 'settings' | 'dismissal' | null>(null);
   const [isThemesOpen, setIsThemesOpen] = useState(false);
+  const [isOverlayLinkOpen, setIsOverlayLinkOpen] = useState(false);
+  const [hasInitializedDefault, setHasInitializedDefault] = useState(false);
+  
+  // Player Data
+  const [battingTeamPlayers, setBattingTeamPlayers] = useState<Player[]>([]);
+  const [bowlingTeamPlayers, setBowlingTeamPlayers] = useState<Player[]>([]);
+  
+  // Dismissal Selection State
+  const [dismissalState, setDismissalState] = useState<{
+    type: DismissalType | null;
+    fielderId: string | null;
+    step: 1 | 2;
+  }>({ type: null, fielderId: null, step: 1 });
+
   const [settingsForm, setSettingsForm] = useState({ 
-    team_a: '', 
-    team_b: '', 
-    toss_winner: '', 
-    toss_decision: '',
-    tournament_name: '',
-    series_name: '',
-    venue: '',
+    team_a_name: '', 
+    team_b_name: '', 
     match_overs: 20,
-    target: 0
+    target: 0,
+    venue: '',
+    overlay_theme: 'default'
   });
 
   useEffect(() => {
     if (match) {
       setSettingsForm({
-        team_a: match.team_a,
-        team_b: match.team_b,
-        toss_winner: match.toss_winner || '',
-        toss_decision: match.toss_decision || '',
-        tournament_name: match.tournament_name || '',
-        series_name: match.series_name || '',
-        venue: match.venue || '',
+        team_a_name: match.team_a_name || '',
+        team_b_name: match.team_b_name || '',
         match_overs: match.match_overs || 20,
-        target: match.target || 0
+        target: match.target || 0,
+        venue: match.venue || '',
+        overlay_theme: match.overlay_theme || 'default'
       });
+
+      // Load players for the teams
+      const loadPlayers = async () => {
+        const battingTeamId = match.current_innings === 1 ? match.team_a_id : match.team_b_id;
+        const bowlingTeamId = match.current_innings === 1 ? match.team_b_id : match.team_a_id;
+        
+        if (battingTeamId && bowlingTeamId) {
+          const [batters, bowlers] = await Promise.all([
+            MatchService.getPlayersByTeam(battingTeamId),
+            MatchService.getPlayersByTeam(bowlingTeamId)
+          ]);
+          setBattingTeamPlayers(batters);
+          setBowlingTeamPlayers(bowlers);
+        }
+      };
+      loadPlayers();
     }
-  }, [match?.id]);
+  }, [match?.id, match?.current_innings]);
 
   const updateMatch = async (updates: Partial<Match>) => {
     if (!match) return;
@@ -80,6 +106,16 @@ export const Scorer: React.FC = () => {
       setMatch(remoteMatch);
     }
   }, [remoteMatch, isProcessing]);
+
+  // Auto-enable default scoreboard on load
+  useEffect(() => {
+    if (match && !hasInitializedDefault && !loading) {
+      if (!overlayCommand?.visible) {
+        MatchService.sendOverlayCommand(match.id, 'DEFAULT_SCOREBOARD', {});
+      }
+      setHasInitializedDefault(true);
+    }
+  }, [match?.id, loading, hasInitializedDefault, overlayCommand?.visible]);
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen bg-slate-950">
@@ -111,21 +147,44 @@ export const Scorer: React.FC = () => {
   const handleScore = async (runs: number, isWicket: boolean = false, extraType?: string) => {
     if (isProcessing || isDebouncing || !match) return;
     
+    if (isWicket) {
+      setDismissalState({ type: null, fielderId: null, step: 1 });
+      setActiveModal('dismissal');
+      return;
+    }
+
     setIsProcessing(true);
     setIsDebouncing(true);
 
-    const beforeBalls = match.balls;
-
     try {
-      console.log(`[UI] Scoring: ${runs} runs | Wicket: ${isWicket} | Extra: ${extraType} | Before Balls: ${beforeBalls}`);
-      // 1. Update database - logic is now in MatchService.recordBall
-      await MatchService.recordBall(match.id, runs, isWicket, extraType);
-    } catch (err) {
+      await MatchService.recordBall(match.id, runs, false, extraType);
+    } catch (err: any) {
       console.error('Scoring error:', err);
+      alert(`Scoring failed: ${err.message || 'Unknown error'}`);
     } finally {
       setIsProcessing(false);
-      // Debounce for 300ms to prevent double clicks
       setTimeout(() => setIsDebouncing(false), 300);
+    }
+  };
+
+  const handleDismissalSubmit = async () => {
+    if (!match || !dismissalState.type) return;
+    
+    setIsProcessing(true);
+    try {
+      await MatchService.recordBall(
+        match.id, 
+        0, 
+        true, 
+        'none', 
+        dismissalState.type, 
+        dismissalState.fielderId || undefined
+      );
+      setActiveModal(null);
+    } catch (err) {
+      console.error('Dismissal error:', err);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -143,7 +202,7 @@ export const Scorer: React.FC = () => {
 
   const handleNextInnings = async () => {
     if (isProcessing || !match) return;
-    if (window.confirm('Are you sure you want to start the next innings? This will reset current score but keep match history.')) {
+    if (window.confirm('Start Next Innings? Teams will switch and target will be set.')) {
       setIsProcessing(true);
       try {
         await MatchService.updateMatchPlayers(match.id, {
@@ -196,74 +255,99 @@ export const Scorer: React.FC = () => {
     { label: 'PLAYING XI', cmd: 'PLAYING_XI' },
     { label: 'BATT CARD', cmd: 'BATT_SUMMARY' },
     { label: 'Bowling card', cmd: 'BALL_SUMMARY' },
-    { label: 'Bar Stat', cmd: 'BAR_STAT' },
-    { label: 'Line Stat', cmd: 'LINE_STAT' },
     { label: 'TARGET', cmd: 'TARGET' },
     { label: 'NEED', cmd: 'NEED_RUN' },
     { label: 'PARTNERSHIP', cmd: 'PARTNERSHIP' },
-    { label: 'CRR/RRR', cmd: 'SHOW_CRR' },
-    { label: 'EXTRAS', cmd: 'SHOW_EXTRA' },
-    { label: 'POWERPLAY', cmd: 'POWERPLAY' },
-    { label: 'TIMEOUT', cmd: 'TIMEOUT' },
-    { label: 'WKT FALL', cmd: 'WICKET_FALL' },
-    { label: 'MILESTONE', cmd: 'MILESTONE' },
-    { label: 'HAT-TRICK', cmd: 'HAT_TRICK' },
-    { label: 'SUPER OVR', cmd: 'SUPER_OVER' },
-    { label: 'DRS', cmd: 'DRS_REVIEW' },
-    { label: 'SPOTLIGHT', cmd: 'PLAYER_SPOTLIGHT' },
     { label: 'TOSS', cmd: 'TOSS_WINNER' },
     { label: 'BOUNDARIES', cmd: 'BOUNDARY_TRACKER' },
   ];
 
   const isBoundaryTrackerActive = overlayCommand?.visible && overlayCommand.command === 'BOUNDARY_TRACKER';
+  const isInningsCompleted = match.wickets >= 10 || (match.overs >= (match.match_overs || 20));
 
   return (
-    <div className="h-screen w-screen bg-white text-slate-900 font-sans overflow-hidden flex flex-col">
+    <div className="h-screen w-screen bg-cricket-light text-slate-900 font-sans overflow-hidden flex flex-col">
       {/* 1. SLIM HEADER */}
-      <header className="h-12 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0">
+      <header className="h-12 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 shadow-sm">
         <div className="flex items-center gap-2">
-          <Radio className="w-4 h-4 text-emerald-600 animate-pulse" />
+          <div className="p-1.5 bg-emerald-600 rounded-lg">
+            <Radio className="w-4 h-4 text-white animate-pulse" />
+          </div>
           <h1 className="text-xs font-black tracking-tighter text-slate-900 uppercase">
-            Control <span className="text-[8px] bg-red-600 text-white px-1.5 py-0.5 rounded-full ml-1">LIVE</span>
+            CricScore<span className="text-emerald-600">Pro</span> <span className="text-[8px] bg-red-600 text-white px-1.5 py-0.5 rounded-full ml-1">LIVE</span>
           </h1>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 rounded-lg border border-slate-200">
-            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-            <span className="text-[8px] font-black text-slate-600 uppercase">Sync</span>
-          </div>
-          <button onClick={() => navigate('/dashboard')} className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+          <button 
+            onClick={() => setIsOverlayLinkOpen(true)}
+            className="cricket-button-secondary flex items-center gap-1.5 px-3 py-1.5"
+          >
+            <MonitorPlay className="w-3 h-3" />
+            <span className="text-[9px] font-black uppercase">Overlay Link</span>
+          </button>
+          <button onClick={() => navigate('/dashboard')} className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200">
             <LogOut className="w-3.5 h-3.5 text-slate-600" />
           </button>
         </div>
       </header>
 
       {/* 2. COMPACT SCORE PREVIEW */}
-      <section className="h-20 bg-slate-50 border-b border-slate-200 px-4 flex items-center justify-between shrink-0 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl -mr-16 -mt-16" />
-        <div className="relative z-10 flex flex-col">
-          <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">Live Preview</span>
-          <h2 className="text-sm font-black text-slate-900 tracking-tight uppercase truncate max-w-[150px]">
-            {match.team_a} <span className="text-slate-400 italic text-[10px]">v</span> {match.team_b}
+      <section className="h-28 sm:h-24 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl -mr-24 -mt-24" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl -ml-24 -mb-24" />
+        
+        <div className="relative z-10 flex flex-col w-[30%]">
+          <div className="flex items-center gap-1.5 mb-1">
+            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+            <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Match Preview</span>
+          </div>
+          <h2 className="text-[9px] sm:text-sm md:text-base font-black text-slate-900 tracking-tight uppercase truncate">
+            {match.team_a_name}
           </h2>
-          <div className="flex gap-2 mt-1">
-             <span className="text-[8px] font-bold text-slate-500 uppercase">S: {match.striker?.split(' ')[0]}</span>
-             <span className="text-[8px] font-bold text-slate-400 uppercase">NS: {match.non_striker?.split(' ')[0]}</span>
+          <div className="flex items-center gap-1">
+             <span className="text-emerald-600 italic text-[7px]">vs</span>
+             <h2 className="text-[9px] sm:text-sm md:text-base font-black text-slate-900 tracking-tight uppercase truncate">
+               {match.team_b_name}
+             </h2>
+          </div>
+          <div className="hidden sm:flex gap-3 mt-1.5">
+             <div className="flex flex-col">
+               <span className="text-[7px] font-black text-slate-400 uppercase">Striker</span>
+               <span className="text-[10px] font-bold text-slate-700 uppercase">{match.striker?.split(' ')[0] || '---'}</span>
+             </div>
+             <div className="flex flex-col">
+               <span className="text-[7px] font-black text-slate-400 uppercase">Non-Striker</span>
+               <span className="text-[10px] font-bold text-slate-700 uppercase">{match.non_striker?.split(' ')[0] || '---'}</span>
+             </div>
           </div>
         </div>
         
-        {/* Centered Scoreboard Fix */}
-        <div className="absolute left-1/2 -translate-x-1/2 text-center">
-          <div className="text-3xl font-black text-slate-900 tracking-tighter leading-none">
-            {match.runs}<span className="text-slate-300">/</span>{match.wickets}
-          </div>
-          <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-1">
-            Overs <span className="text-emerald-600">{match.overs.toFixed(1)}</span>
-          </div>
+        {/* Centered Scoreboard */}
+        <div className="relative z-20 text-center bg-emerald-50 px-4 sm:px-6 py-2 rounded-2xl border border-emerald-100 shadow-sm">
+          {isInningsCompleted ? (
+            <div className="bg-red-600 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse shadow-lg shadow-red-600/20">
+              Innings Completed
+            </div>
+          ) : (
+            <>
+              <div className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tighter leading-none flex items-baseline justify-center">
+                {match.runs}<span className="text-emerald-300 text-xl sm:text-2xl mx-0.5">/</span>{match.wickets}
+              </div>
+              <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1 flex items-center justify-center gap-2">
+                <span>Overs</span>
+                <span className="bg-emerald-600 text-white px-2 py-0.5 rounded-md text-[8px] sm:text-[9px]">{match.overs.toFixed(1)}</span>
+              </div>
+            </>
+          )}
         </div>
 
-        <div className="relative z-10 text-right opacity-0 pointer-events-none">
-          {/* Hidden original right-aligned score to maintain layout balance if needed, but we used absolute center */}
+        <div className="relative z-10 text-right flex flex-col items-end gap-1 w-[30%]">
+          {match.target && match.target > 0 && (
+            <div className="bg-slate-900 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl shadow-lg">
+              <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest block leading-none mb-0.5">Target</span>
+              <span className="text-xs sm:text-sm font-black tracking-tighter">{match.target}</span>
+            </div>
+          )}
         </div>
       </section>
 
@@ -271,20 +355,20 @@ export const Scorer: React.FC = () => {
       <div className="flex-1 flex flex-col p-3 gap-3 overflow-hidden bg-white">
         
         {/* Scoring Engine */}
-        <div className="flex flex-col gap-3 min-h-0">
+        <div className={`flex flex-col gap-3 min-h-0 ${isInningsCompleted ? 'opacity-50 pointer-events-none' : ''}`}>
           <div className="flex items-center gap-2 px-1">
             <Zap className="w-3 h-3 text-emerald-600" />
             <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Scoring Engine</span>
           </div>
           
           {/* Runs Grid */}
-          <div className="grid grid-cols-8 gap-1 shrink-0">
+          <div className="grid grid-cols-8 gap-1.5 shrink-0">
             {scoreButtons.map((runs) => (
               <button
                 key={runs}
                 onClick={() => handleScore(runs)}
                 disabled={isProcessing}
-                className="w-full h-10 bg-slate-100 hover:bg-emerald-600 hover:text-white active:scale-95 text-slate-800 rounded-lg text-base font-black transition-all border border-slate-200 shadow-sm flex items-center justify-center disabled:opacity-50"
+                className="w-full h-12 bg-white hover:bg-emerald-600 hover:text-white active:scale-95 text-slate-800 rounded-xl text-lg font-black transition-all border border-slate-200 shadow-sm flex items-center justify-center disabled:opacity-50"
               >
                 {runs}
               </button>
@@ -292,20 +376,20 @@ export const Scorer: React.FC = () => {
             <button
               onClick={() => handleScore(0, true)}
               disabled={isProcessing}
-              className="w-full h-10 bg-red-50 hover:bg-red-600 hover:text-white text-red-600 rounded-lg text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 shadow-sm disabled:opacity-50"
+              className="w-full h-12 bg-red-50 hover:bg-red-600 hover:text-white text-red-600 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all border border-red-100 shadow-sm disabled:opacity-50"
             >
               OUT
             </button>
           </div>
 
           {/* Extras Grid */}
-          <div className="grid grid-cols-4 gap-1 shrink-0">
+          <div className="grid grid-cols-4 gap-1.5 shrink-0">
             {extraButtons.map((btn) => (
               <button
                 key={btn.label}
                 onClick={() => handleScore(btn.runs, false, btn.type)}
                 disabled={isProcessing}
-                className="py-1.5 bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border border-slate-200 disabled:opacity-50"
+                className="py-2.5 bg-white hover:bg-blue-600 hover:text-white text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-slate-200 shadow-sm disabled:opacity-50"
               >
                 {btn.label}
               </button>
@@ -313,21 +397,21 @@ export const Scorer: React.FC = () => {
           </div>
 
           {/* Utility Row */}
-          <div className="grid grid-cols-4 gap-1 shrink-0">
-            <button onClick={handleUndo} className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1 shadow-sm">
+          <div className="grid grid-cols-5 gap-1.5 shrink-0">
+            <button onClick={handleUndo} className="py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95">
               <Undo2 className="w-3 h-3" /> Undo
             </button>
-            <button onClick={handleNextInnings} className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-blue-500 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1 shadow-sm">
-              <ArrowRightCircle className="w-3 h-3" /> Next Innings
+            <button onClick={handleNextInnings} className="py-2 bg-white border border-slate-200 hover:bg-slate-50 text-blue-500 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95">
+              <ArrowRightCircle className="w-3 h-3" /> Next
             </button>
-            <button onClick={() => setActiveModal('batter')} className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">
+            <button onClick={() => setActiveModal('batter')} className="py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-sm transition-all active:scale-95">
               Batter
             </button>
-            <button onClick={() => setActiveModal('bowler')} className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">
+            <button onClick={() => setActiveModal('bowler')} className="py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-sm transition-all active:scale-95">
               Bowler
             </button>
-            <button onClick={() => setActiveModal('settings')} className="py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">
-              Settings
+            <button onClick={() => setActiveModal('settings')} className="py-2 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95">
+              <Settings className="w-3 h-3" /> Settings
             </button>
           </div>
         </div>
@@ -339,23 +423,31 @@ export const Scorer: React.FC = () => {
               <MonitorPlay className="w-3 h-3 text-blue-600" />
               <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Graphics Engine</span>
             </div>
-            <button onClick={() => MatchService.hideOverlay(match.id)} className="text-[8px] font-black text-slate-400 hover:text-slate-600 uppercase flex items-center gap-1 transition-colors">
-              <EyeOff className="w-2.5 h-2.5" /> Hide All
-            </button>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setIsThemesOpen(true)}
+                className="text-[8px] font-black text-emerald-600 hover:text-emerald-700 uppercase flex items-center gap-1 transition-colors"
+              >
+                <Tv className="w-2.5 h-2.5" /> Themes
+              </button>
+              <button onClick={() => MatchService.hideOverlay(match.id)} className="text-[8px] font-black text-slate-400 hover:text-slate-600 uppercase flex items-center gap-1 transition-colors">
+                <EyeOff className="w-2.5 h-2.5" /> Hide All
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
-            <div className="grid grid-cols-4 gap-1">
+            <div className="grid grid-cols-4 gap-1.5">
               {graphicsButtons.map((btn) => {
                 const isActive = overlayCommand?.visible && overlayCommand.command === btn.cmd;
                 return (
                   <button
                     key={btn.label}
                     onClick={() => sendCommand(btn.cmd)}
-                    className={`py-1.5 rounded-lg flex flex-col items-center justify-center gap-1 transition-all border ${
+                    className={`py-2.5 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border ${
                       isActive 
                         ? "bg-emerald-600 border-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)]" 
-                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm"
                     }`}
                   >
                     <span className="text-[7px] font-black uppercase tracking-widest leading-none">
@@ -421,41 +513,6 @@ export const Scorer: React.FC = () => {
           </div>
         </div>
 
-        {/* Themes Section */}
-        <div className="shrink-0 border-t border-slate-100 pt-2 mt-2">
-          <button 
-            onClick={() => setIsThemesOpen(!isThemesOpen)}
-            className="w-full flex items-center justify-between px-1 py-1 hover:bg-slate-50 rounded transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Tv className="w-3 h-3 text-blue-600" />
-              <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Themes</span>
-            </div>
-            <MoreHorizontal className={`w-3 h-3 text-slate-400 transition-transform ${isThemesOpen ? 'rotate-90' : ''}`} />
-          </button>
-
-          {isThemesOpen && (
-            <div className="mt-2 space-y-1 px-1 pb-2">
-              {['theme1', 'theme2', 'theme3'].map((t, idx) => {
-                const isActive = (match.overlay_theme || localStorage.getItem('scoreboardTheme') || 'theme1') === t;
-                return (
-                  <button
-                    key={t}
-                    onClick={() => handleThemeChange(t)}
-                    className={`w-full h-10 rounded-lg text-xs font-bold transition-all px-3 flex items-center justify-between ${
-                      isActive 
-                        ? "bg-blue-600 text-white shadow-md" 
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
-                  >
-                    <span>Theme {idx + 1}</span>
-                    {isActive && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* 4. SLIM FOOTER */}
@@ -486,157 +543,294 @@ export const Scorer: React.FC = () => {
       `}</style>
 
       {/* MODALS */}
-      {activeModal === 'batter' && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 space-y-6">
-            <h3 className="text-xl font-black uppercase tracking-tighter">Select Batters</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Striker</label>
-                <input 
-                  type="text" 
-                  defaultValue={match.striker}
-                  onBlur={(e) => updateMatch({ striker: e.target.value })}
-                  className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Non-Striker</label>
-                <input 
-                  type="text" 
-                  defaultValue={match.non_striker}
-                  onBlur={(e) => updateMatch({ non_striker: e.target.value })}
-                  className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
-                />
-              </div>
+      {isOverlayLinkOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-emerald-100">
+            <div className="p-4 border-b border-emerald-50 flex items-center justify-between bg-emerald-50/50">
+              <h3 className="text-sm font-black text-emerald-900 uppercase tracking-widest">Overlay Link</h3>
+              <button onClick={() => setIsOverlayLinkOpen(false)} className="p-1 hover:bg-emerald-100 rounded-lg transition-colors">
+                <X className="w-4 h-4 text-emerald-600" />
+              </button>
             </div>
-            <button onClick={() => setActiveModal(null)} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest">Done</button>
+            <div className="p-6 space-y-4">
+              <p className="text-[10px] text-slate-500 font-medium leading-relaxed">Copy this link and use it as a Browser Source in OBS or vMix.</p>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 break-all font-mono text-[10px] text-slate-600 select-all">
+                {`${window.location.origin}/#/overlay/${match.id}`}
+              </div>
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/#/overlay/${match.id}`);
+                  alert('Link copied to clipboard!');
+                }}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
+              >
+                Copy Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isThemesOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-emerald-100">
+            <div className="p-4 border-b border-emerald-50 flex items-center justify-between bg-emerald-50/50">
+              <h3 className="text-sm font-black text-emerald-900 uppercase tracking-widest">Select Theme</h3>
+              <button onClick={() => setIsThemesOpen(false)} className="p-1 hover:bg-emerald-100 rounded-lg transition-colors">
+                <X className="w-4 h-4 text-emerald-600" />
+              </button>
+            </div>
+            <div className="p-4 grid grid-cols-1 gap-2">
+              {[
+                { id: 'theme1', name: 'Theme 1 (Default)' },
+                { id: 'theme2', name: 'Theme 2 (Modern)' },
+                { id: 'theme3', name: 'Theme 3 (Classic)' }
+              ].map((theme) => (
+                <button
+                  key={theme.id}
+                  onClick={() => {
+                    handleThemeChange(theme.id);
+                    setIsThemesOpen(false);
+                  }}
+                  className={`w-full py-4 px-4 rounded-xl text-left flex items-center justify-between border transition-all ${
+                    match.overlay_theme === theme.id 
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-900" 
+                      : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  <span className="text-xs font-black uppercase tracking-widest">{theme.name}</span>
+                  {match.overlay_theme === theme.id && <div className="w-2 h-2 bg-emerald-500 rounded-full" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeModal === 'batter' && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-slate-200">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Select Batters</h3>
+              <button onClick={() => setActiveModal(null)} className="p-1 hover:bg-slate-200 rounded-lg transition-colors">
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Striker</label>
+                <select 
+                  value={settingsForm.striker}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, striker: e.target.value })}
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                >
+                  <option value="">Select Striker</option>
+                  {battingTeamPlayers.map(p => (
+                    <option key={p.id} value={p.player_name}>{p.player_name} ({p.role})</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Non-Striker</label>
+                <select 
+                  value={settingsForm.non_striker}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, non_striker: e.target.value })}
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                >
+                  <option value="">Select Non-Striker</option>
+                  {battingTeamPlayers.map(p => (
+                    <option key={p.id} value={p.player_name}>{p.player_name} ({p.role})</option>
+                  ))}
+                </select>
+              </div>
+              <button 
+                onClick={() => updateMatch({ striker: settingsForm.striker, non_striker: settingsForm.non_striker })}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
+              >
+                Update Batters
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {activeModal === 'bowler' && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 space-y-6">
-            <h3 className="text-xl font-black uppercase tracking-tighter">Select Bowler</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Current Bowler</label>
-                <input 
-                  type="text" 
-                  defaultValue={match.bowler}
-                  onBlur={(e) => updateMatch({ bowler: e.target.value })}
-                  className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
-                />
-              </div>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-slate-200">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Select Bowler</h3>
+              <button onClick={() => setActiveModal(null)} className="p-1 hover:bg-slate-200 rounded-lg transition-colors">
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
             </div>
-            <button onClick={() => setActiveModal(null)} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest">Done</button>
+            <div className="p-4 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Bowler</label>
+                <select 
+                  value={settingsForm.bowler}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, bowler: e.target.value })}
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                >
+                  <option value="">Select Bowler</option>
+                  {bowlingTeamPlayers.map(p => (
+                    <option key={p.id} value={p.player_name}>{p.player_name} ({p.role})</option>
+                  ))}
+                </select>
+              </div>
+              <button 
+                onClick={() => updateMatch({ bowler: settingsForm.bowler })}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
+              >
+                Update Bowler
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {activeModal === 'settings' && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 space-y-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-black uppercase tracking-tighter">Match Settings</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Tournament</label>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-slate-200">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Match Settings</h3>
+              <button onClick={() => setActiveModal(null)} className="p-1 hover:bg-slate-200 rounded-lg transition-colors">
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match Overs</label>
                   <input 
-                    type="text" 
-                    value={settingsForm.tournament_name}
-                    onChange={(e) => setSettingsForm(prev => ({ ...prev, tournament_name: e.target.value }))}
-                    className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
+                    type="number"
+                    value={settingsForm.match_overs}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, match_overs: parseInt(e.target.value) })}
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
                   />
                 </div>
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Series</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target</label>
                   <input 
-                    type="text" 
-                    value={settingsForm.series_name}
-                    onChange={(e) => setSettingsForm(prev => ({ ...prev, series_name: e.target.value }))}
-                    className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
+                    type="number"
+                    value={settingsForm.target}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, target: parseInt(e.target.value) })}
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
                   />
                 </div>
               </div>
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Venue</label>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Team A Name</label>
                 <input 
-                  type="text" 
-                  value={settingsForm.venue}
-                  onChange={(e) => setSettingsForm(prev => ({ ...prev, venue: e.target.value }))}
-                  className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
+                  type="text"
+                  value={settingsForm.team_a_name}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, team_a_name: e.target.value })}
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Match Overs</label>
-                  <input 
-                    type="number" 
-                    value={settingsForm.match_overs}
-                    onChange={(e) => setSettingsForm(prev => ({ ...prev, match_overs: parseInt(e.target.value) }))}
-                    className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Target</label>
-                  <input 
-                    type="number" 
-                    value={settingsForm.target}
-                    onChange={(e) => setSettingsForm(prev => ({ ...prev, target: parseInt(e.target.value) }))}
-                    className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
-                  />
-                </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Team B Name</label>
+                <input 
+                  type="text"
+                  value={settingsForm.team_b_name}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, team_b_name: e.target.value })}
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
+                />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Team A</label>
-                  <input 
-                    type="text" 
-                    value={settingsForm.team_a}
-                    onChange={(e) => setSettingsForm(prev => ({ ...prev, team_a: e.target.value }))}
-                    className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Team B</label>
-                  <input 
-                    type="text" 
-                    value={settingsForm.team_b}
-                    onChange={(e) => setSettingsForm(prev => ({ ...prev, team_b: e.target.value }))}
-                    className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
-                  />
-                </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Venue</label>
+                <input 
+                  type="text"
+                  value={settingsForm.venue}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, venue: e.target.value })}
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
+                />
               </div>
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Toss Winner</label>
-                <select 
-                  value={settingsForm.toss_winner}
-                  onChange={(e) => setSettingsForm(prev => ({ ...prev, toss_winner: e.target.value }))}
-                  className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
-                >
-                  <option value="">Select Team</option>
-                  <option value={settingsForm.team_a}>{settingsForm.team_a}</option>
-                  <option value={settingsForm.team_b}>{settingsForm.team_b}</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Decision</label>
-                <select 
-                  value={settingsForm.toss_decision}
-                  onChange={(e) => setSettingsForm(prev => ({ ...prev, toss_decision: e.target.value }))}
-                  className="w-full p-3 bg-slate-100 rounded-xl font-bold text-sm"
-                >
-                  <option value="">Select Decision</option>
-                  <option value="BAT">BAT</option>
-                  <option value="BOWL">BOWL</option>
-                </select>
-              </div>
+
+              <button 
+                onClick={() => updateMatch(settingsForm)}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
+              >
+                Save Settings
+              </button>
             </div>
-            <div className="flex gap-3">
-              <button onClick={() => setActiveModal(null)} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-xs tracking-widest">Cancel</button>
-              <button onClick={() => updateMatch(settingsForm)} className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest">Save Changes</button>
+          </div>
+        </div>
+      )}
+
+      {activeModal === 'dismissal' && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-slate-200">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">
+                {dismissalState.step === 1 ? 'Select Dismissal Type' : 'Select Fielder'}
+              </h3>
+              <button 
+                onClick={() => {
+                  setActiveModal(null);
+                  setDismissalState({ type: null, fielderId: null, step: 1 });
+                }} 
+                className="p-1 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+            
+            <div className="p-4">
+              {dismissalState.step === 1 ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    'Bowled', 'Caught', 'LBW', 'Run Out', 
+                    'Stumped', 'Hit Wicket', 'Retired Out', 'Obstructing Field'
+                  ].map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => {
+                        if (type === 'Caught' || type === 'Run Out' || type === 'Stumped') {
+                          setDismissalState({ ...dismissalState, type: type as DismissalType, step: 2 });
+                        } else {
+                          setDismissalState({ ...dismissalState, type: type as DismissalType });
+                          handleDismissalSubmit();
+                        }
+                      }}
+                      className="py-3 bg-slate-50 hover:bg-emerald-600 hover:text-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fielder</label>
+                    <select 
+                      onChange={(e) => setDismissalState({ ...dismissalState, fielderId: e.target.value })}
+                      className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
+                    >
+                      <option value="">Select Fielder</option>
+                      {bowlingTeamPlayers.map(p => (
+                        <option key={p.id} value={p.id}>{p.player_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setDismissalState({ ...dismissalState, step: 1 })}
+                      className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                    >
+                      Back
+                    </button>
+                    <button 
+                      onClick={handleDismissalSubmit}
+                      className="flex-[2] py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20"
+                    >
+                      Confirm Wicket
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

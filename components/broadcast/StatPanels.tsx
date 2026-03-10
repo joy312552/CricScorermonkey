@@ -4,7 +4,9 @@ import { motion } from 'framer-motion';
 import { Match } from '../../types';
 import { TrendingUp, PlusCircle } from 'lucide-react';
 
-export const StatPanels: React.FC<{ match: Match, type: 'CRR' | 'EXTRA' }> = ({ match, type }) => {
+export const StatPanels: React.FC<{ match: Match, type: 'CRR' | 'EXTRA', theme?: string }> = ({ match, type, theme = 'theme1' }) => {
+  const isTheme2 = theme === 'theme2';
+  const isTheme3 = theme === 'theme3';
   const crr = (match.runs / Math.max(0.1, match.balls / 6)).toFixed(2);
   const target = match.target || 0;
   const runsNeeded = Math.max(0, target - match.runs);
@@ -17,9 +19,11 @@ export const StatPanels: React.FC<{ match: Match, type: 'CRR' | 'EXTRA' }> = ({ 
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: -100, opacity: 0 }}
-        className="absolute top-40 left-20 broadcast-panel rounded-2xl overflow-hidden flex items-center gap-6 p-6 shadow-2xl"
+        className={`absolute top-40 left-20 broadcast-panel rounded-2xl overflow-hidden flex items-center gap-6 p-6 shadow-2xl ${
+          isTheme2 ? 'bg-slate-900/95' : isTheme3 ? 'bg-emerald-950/95' : 'bg-slate-900/95'
+        }`}
       >
-        <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${isTheme3 ? 'bg-emerald-500' : 'bg-emerald-500'}`}>
           <TrendingUp className="w-6 h-6 text-white" />
         </div>
         <div className="flex flex-col">
@@ -31,7 +35,7 @@ export const StatPanels: React.FC<{ match: Match, type: 'CRR' | 'EXTRA' }> = ({ 
             <div className="w-px h-12 bg-white/10 mx-2" />
             <div className="flex flex-col">
               <span className="text-slate-400 font-black text-[10px] uppercase tracking-widest">Required RR</span>
-              <span className="text-blue-400 font-black text-4xl tracking-tighter">{rrr}</span>
+              <span className={`${isTheme3 ? 'text-emerald-400' : 'text-blue-400'} font-black text-4xl tracking-tighter`}>{rrr}</span>
             </div>
           </>
         )}
@@ -44,10 +48,12 @@ export const StatPanels: React.FC<{ match: Match, type: 'CRR' | 'EXTRA' }> = ({ 
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: -100, opacity: 0 }}
-      className="absolute top-40 right-20 broadcast-panel rounded-2xl overflow-hidden p-8 shadow-2xl min-w-[300px]"
+      className={`absolute top-40 right-20 broadcast-panel rounded-2xl overflow-hidden p-8 shadow-2xl min-w-[300px] ${
+        isTheme2 ? 'bg-slate-900/95' : isTheme3 ? 'bg-emerald-950/95' : 'bg-slate-900/95'
+      }`}
     >
       <div className="flex items-center gap-4 mb-6 pb-4 border-b border-white/10">
-        <PlusCircle className="w-6 h-6 text-blue-500" />
+        <PlusCircle className={`w-6 h-6 ${isTheme3 ? 'text-emerald-500' : 'text-blue-500'}`} />
         <h3 className="text-xl font-black text-white uppercase tracking-tighter">Extras Breakdown</h3>
       </div>
       <div className="space-y-4">
@@ -68,8 +74,8 @@ export const StatPanels: React.FC<{ match: Match, type: 'CRR' | 'EXTRA' }> = ({ 
           <span className="text-white font-black text-xl">1</span>
         </div>
         <div className="pt-4 border-t border-white/10 flex justify-between items-center">
-          <span className="text-emerald-400 font-black uppercase tracking-widest text-xs">Total Extras</span>
-          <span className="text-emerald-400 font-black text-2xl">19</span>
+          <span className={`${isTheme3 ? 'text-emerald-400' : 'text-emerald-400'} font-black uppercase tracking-widest text-xs`}>Total Extras</span>
+          <span className={`${isTheme3 ? 'text-emerald-400' : 'text-emerald-400'} font-black text-2xl`}>19</span>
         </div>
       </div>
     </motion.div>

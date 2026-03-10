@@ -3,7 +3,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Match } from '../../types';
 
-export const BatsmanCard: React.FC<{ match: Match }> = ({ match }) => {
+export const BatsmanCard: React.FC<{ match: Match, theme?: string }> = ({ match, theme = 'theme1' }) => {
+  const isTheme2 = theme === 'theme2';
+  const isTheme3 = theme === 'theme3';
+
   // Mock data for display based on image
   const batsmen = [
     { name: 'GARVIT', status: 'NOT OUT', runs: 22, balls: 9, isNotOut: true },
@@ -21,17 +24,27 @@ export const BatsmanCard: React.FC<{ match: Match }> = ({ match }) => {
       transition={{ type: 'spring', damping: 20, stiffness: 100 }}
       className="absolute inset-0 flex items-center justify-center z-[100] pointer-events-none select-none font-sans italic"
     >
-      <div className="w-[90%] max-w-5xl bg-gradient-to-br from-[#0A1128] to-[#1A237E] rounded-lg overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border-2 border-white/10 relative">
+      <div className={`w-[90%] max-w-5xl rounded-lg overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border-2 border-white/10 relative ${
+        isTheme2 ? 'bg-gradient-to-br from-slate-900 to-slate-800' : 
+        isTheme3 ? 'bg-gradient-to-br from-emerald-950 to-emerald-900' : 
+        'bg-gradient-to-br from-[#0A1128] to-[#1A237E]'
+      }`}>
         {/* Glossy Overlay */}
         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none" />
         
         {/* Side Accents */}
         <div className="absolute left-0 top-0 bottom-0 w-32 overflow-hidden pointer-events-none">
-          <div className="absolute -left-16 top-0 w-32 h-full bg-yellow-400 transform skew-x-[-15deg]" />
-          <div className="absolute -left-20 top-0 w-32 h-full bg-cyan-400 transform skew-x-[-15deg] opacity-50 ml-4" />
+          <div className={`absolute -left-16 top-0 w-32 h-full transform skew-x-[-15deg] ${
+            isTheme2 ? 'bg-slate-600' : isTheme3 ? 'bg-emerald-600' : 'bg-yellow-400'
+          }`} />
+          <div className={`absolute -left-20 top-0 w-32 h-full transform skew-x-[-15deg] opacity-50 ml-4 ${
+            isTheme2 ? 'bg-slate-400' : isTheme3 ? 'bg-emerald-400' : 'bg-cyan-400'
+          }`} />
         </div>
         <div className="absolute right-0 top-0 bottom-0 w-16 overflow-hidden pointer-events-none">
-          <div className="absolute -right-8 top-0 w-16 h-full bg-cyan-500 transform skew-x-[-15deg]" />
+          <div className={`absolute -right-8 top-0 w-16 h-full transform skew-x-[-15deg] ${
+            isTheme2 ? 'bg-slate-600' : isTheme3 ? 'bg-emerald-600' : 'bg-cyan-500'
+          }`} />
         </div>
 
         {/* Content */}
@@ -76,7 +89,9 @@ export const BatsmanCard: React.FC<{ match: Match }> = ({ match }) => {
         </div>
 
         {/* Footer */}
-        <div className="bg-red-600 h-12 flex items-center justify-between px-12 relative overflow-hidden border-t-2 border-white/20">
+        <div className={`h-12 flex items-center justify-between px-12 relative overflow-hidden border-t-2 border-white/20 ${
+          isTheme2 ? 'bg-slate-950' : isTheme3 ? 'bg-emerald-950' : 'bg-red-600'
+        }`}>
           <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
           <span className="text-white font-black text-lg uppercase tracking-widest z-10">BATTING SUMMARY</span>
           <div className="flex gap-12 text-white font-black text-xl z-10">

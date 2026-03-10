@@ -100,8 +100,8 @@ export const Overlay: React.FC = () => {
       {/* International Standard Centered Scoreboard (Optional, can be toggled via overlayCommand) */}
       {overlayCommand?.type === 'SCOREBOARD' && (
         <CenteredScoreboard 
-          teamA={match.team_a}
-          teamB={match.team_b}
+          teamA={match.team_a_name || 'Team A'}
+          teamB={match.team_b_name || 'Team B'}
           striker={match.striker || 'Batter 1'}
           nonStriker={match.non_striker || 'Batter 2'}
           bowler={match.bowler || 'Bowler'}
@@ -126,6 +126,7 @@ export const Overlay: React.FC = () => {
         match={match} 
         command={overlayCommand} 
         scoreAnimation={scoreAnimation}
+        theme={match.overlay_theme || localStorage.getItem('scoreboardTheme') || 'theme1'}
       />
     </div>
   );

@@ -12,8 +12,9 @@ DROP TABLE IF EXISTS matches CASCADE;
 -- 2. CREATE MATCHES TABLE
 CREATE TABLE matches (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  team_a text NOT NULL,
-  team_b text NOT NULL,
+  team_a_id uuid,
+  team_b_id uuid,
+  tournament_id uuid,
   runs integer DEFAULT 0,
   wickets integer DEFAULT 0,
   balls integer DEFAULT 0,
@@ -25,8 +26,6 @@ CREATE TABLE matches (
   toss_winner text,
   toss_decision text,
   status text DEFAULT 'live',
-  tournament_name text DEFAULT 'CricScore Pro League',
-  series_name text DEFAULT 'T20 Series',
   venue text DEFAULT 'International Stadium',
   match_overs integer DEFAULT 20,
   target integer DEFAULT 0,
@@ -46,18 +45,25 @@ CREATE TABLE matches (
   
   created_by uuid REFERENCES auth.users(id),
   created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now()
+  updated_at timestamp with time zone DEFAULT now(),
+
+  CONSTRAINT matches_team_a_id_fkey FOREIGN KEY (team_a_id) REFERENCES teams(id),
+  CONSTRAINT matches_team_b_id_fkey FOREIGN KEY (team_b_id) REFERENCES teams(id),
+  CONSTRAINT matches_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES tournaments(id)
 );
 
 -- 3. CREATE BALL_EVENTS TABLE
 CREATE TABLE ball_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   match_id uuid REFERENCES matches(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES auth.users(id),
   over_number integer NOT NULL,
   ball_number integer NOT NULL,
   runs integer DEFAULT 0,
   extra_type text DEFAULT 'none',
   wicket boolean DEFAULT false,
+  dismissal_type text,
+  fielder_id uuid REFERENCES players(id),
   innings integer DEFAULT 1,
   created_at timestamp with time zone DEFAULT now()
 );
@@ -85,7 +91,7 @@ CREATE TABLE players (
   team_id uuid REFERENCES teams(id) ON DELETE CASCADE,
   player_name text NOT NULL,
   jersey_number integer,
-  role text,
+  role text DEFAULT 'Player',
   created_at timestamp with time zone DEFAULT now()
 );
 
@@ -93,6 +99,7 @@ CREATE TABLE players (
 CREATE TABLE overlay_commands (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   match_id uuid REFERENCES matches(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES auth.users(id),
   command text NOT NULL,
   payload jsonb DEFAULT '{}',
   visible boolean DEFAULT true,
@@ -116,13 +123,11 @@ CREATE POLICY "Public players are viewable by everyone" ON players FOR SELECT US
 CREATE POLICY "Public overlay_commands are viewable by everyone" ON overlay_commands FOR SELECT USING (true);
 
 CREATE POLICY "Users can manage their own matches" ON matches FOR ALL USING (auth.uid() = created_by);
-CREATE POLICY "Users can manage their own ball_events" ON ball_events FOR ALL 
-USING (EXISTS (SELECT 1 FROM matches WHERE matches.id = ball_events.match_id AND matches.created_by = auth.uid()));
+CREATE POLICY "Users can manage their own ball_events" ON ball_events FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own teams" ON teams FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own tournaments" ON tournaments FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own players" ON players FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "Users can manage their own overlay_commands" ON overlay_commands FOR ALL 
-USING (EXISTS (SELECT 1 FROM matches WHERE matches.id = overlay_commands.match_id AND matches.created_by = auth.uid()));
+CREATE POLICY "Users can manage their own overlay_commands" ON overlay_commands FOR ALL USING (auth.uid() = user_id);
 
 -- 10. REALTIME
 DROP PUBLICATION IF EXISTS supabase_realtime;

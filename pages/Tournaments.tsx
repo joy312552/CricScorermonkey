@@ -17,7 +17,12 @@ export const Tournaments: React.FC = () => {
   const fetchTournaments = async () => {
     if (!user) return;
     try {
-      const data = await MatchService.getTournaments(user.id);
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
       setTournaments(data || []);
     } catch (err) {
       console.error('Error fetching tournaments:', err);
@@ -35,21 +40,30 @@ export const Tournaments: React.FC = () => {
     if (!newName.trim() || !user) return;
 
     try {
-      await MatchService.createTournament(user.id, newName.trim());
+      const { error } = await supabase
+        .from('tournaments')
+        .insert([{ 
+          user_id: user.id, 
+          tournament_name: newName.trim()
+        }]);
+      if (error) throw error;
+      
       setNewName('');
       fetchTournaments();
     } catch (err) {
+      alert('Operation failed. Please try again.');
       console.error('Error adding tournament:', err);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this tournament?')) return;
+    if (!window.confirm('Delete this tournament?')) return;
     try {
       const { error } = await supabase.from('tournaments').delete().eq('id', id);
       if (error) throw error;
       fetchTournaments();
     } catch (err) {
+      alert('Operation failed. Please try again.');
       console.error('Error deleting tournament:', err);
     }
   };
@@ -68,7 +82,7 @@ export const Tournaments: React.FC = () => {
           <form onSubmit={handleAdd} className="flex gap-4">
             <input
               type="text"
-              placeholder="Tournament Name (e.g. Summer League 2024)"
+              placeholder="Tournament Name (e.g. Blitz Cricket League)"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold focus:border-emerald-500 transition-all outline-none"
@@ -88,14 +102,11 @@ export const Tournaments: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-xl font-black text-slate-900">{t.tournament_name}</h3>
-                  <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">
-                    <Calendar className="w-3 h-3" /> Created Recently
-                  </div>
                 </div>
               </div>
               <button 
                 onClick={() => handleDelete(t.id)}
-                className="p-3 text-slate-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 bg-slate-50 rounded-xl"
+                className="p-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors shadow-lg shadow-red-100"
               >
                 <Trash2 className="w-5 h-5" />
               </button>

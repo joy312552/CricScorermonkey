@@ -3,7 +3,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Match } from '../../types';
 
-export const Partnership: React.FC<{ match: Match }> = ({ match }) => {
+export const Partnership: React.FC<{ match: Match, theme?: string }> = ({ match, theme = 'theme1' }) => {
+  const isTheme2 = theme === 'theme2';
+  const isTheme3 = theme === 'theme3';
   // Mock partnership data for now
   const pRuns = 68;
   const pBalls = 42;
@@ -20,16 +22,20 @@ export const Partnership: React.FC<{ match: Match }> = ({ match }) => {
       transition={{ type: 'spring', damping: 25, stiffness: 120 }}
       className="absolute bottom-40 left-1/2 -translate-x-1/2 w-full max-w-4xl z-[100] pointer-events-none select-none font-sans italic"
     >
-      <div className="bg-gradient-to-br from-[#0A1128] to-[#1A237E] rounded-lg overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.6)] border-2 border-white/10 relative flex items-center h-24">
+      <div className={`rounded-lg overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.6)] border-2 border-white/10 relative flex items-center h-24 ${
+        isTheme2 ? 'bg-gradient-to-br from-slate-900 to-slate-800' : 
+        isTheme3 ? 'bg-gradient-to-br from-emerald-950 to-emerald-900' : 
+        'bg-gradient-to-br from-[#0A1128] to-[#1A237E]'
+      }`}>
         {/* Glossy Overlay */}
         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none" />
         
         {/* Left Section: Batsman 1 */}
         <div className="flex-1 flex flex-col items-center justify-center border-r border-white/10 relative overflow-hidden group">
-          <div className="absolute inset-0 bg-blue-600/5 group-hover:bg-blue-600/10 transition-colors" />
+          <div className={`absolute inset-0 group-hover:bg-white/10 transition-colors ${isTheme3 ? 'bg-emerald-600/5' : 'bg-blue-600/5'}`} />
           <span className="text-white font-black text-xl uppercase tracking-tighter relative z-10">{match.striker || 'VIRAT KOHLI'}</span>
           <div className="flex items-baseline gap-2 relative z-10">
-            <span className="text-cyan-400 font-black text-2xl">{pA}</span>
+            <span className={`${isTheme3 ? 'text-emerald-400' : 'text-cyan-400'} font-black text-2xl`}>{pA}</span>
             <span className="text-white/60 font-bold text-sm uppercase">({pABalls})</span>
           </div>
         </div>
@@ -37,7 +43,7 @@ export const Partnership: React.FC<{ match: Match }> = ({ match }) => {
         {/* Center Section: Partnership */}
         <div className="w-64 flex flex-col items-center justify-center bg-black/20 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />
-          <span className="text-cyan-400 font-black text-xs uppercase tracking-[0.3em] mb-1 relative z-10">PARTNERSHIP</span>
+          <span className={`${isTheme3 ? 'text-emerald-400' : 'text-cyan-400'} font-black text-xs uppercase tracking-[0.3em] mb-1 relative z-10`}>PARTNERSHIP</span>
           <motion.span 
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
@@ -46,15 +52,15 @@ export const Partnership: React.FC<{ match: Match }> = ({ match }) => {
             {pRuns} <span className="text-lg font-bold text-white/60 uppercase">RUNS</span>
           </motion.span>
           {/* Glowing Highlight Line */}
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-cyan-500 shadow-[0_0_15px_rgba(34,211,238,0.8)]" />
+          <div className={`absolute bottom-0 left-0 right-0 h-1 shadow-[0_0_15px_rgba(34,211,238,0.8)] ${isTheme3 ? 'bg-emerald-500' : 'bg-cyan-500'}`} />
         </div>
 
         {/* Right Section: Batsman 2 */}
         <div className="flex-1 flex flex-col items-center justify-center border-l border-white/10 relative overflow-hidden group">
-          <div className="absolute inset-0 bg-blue-600/5 group-hover:bg-blue-600/10 transition-colors" />
+          <div className={`absolute inset-0 group-hover:bg-white/10 transition-colors ${isTheme3 ? 'bg-emerald-600/5' : 'bg-blue-600/5'}`} />
           <span className="text-white font-black text-xl uppercase tracking-tighter relative z-10">{match.non_striker || 'ROHIT SHARMA'}</span>
           <div className="flex items-baseline gap-2 relative z-10">
-            <span className="text-cyan-400 font-black text-2xl">{pB}</span>
+            <span className={`${isTheme3 ? 'text-emerald-400' : 'text-cyan-400'} font-black text-2xl`}>{pB}</span>
             <span className="text-white/60 font-bold text-sm uppercase">({pBBalls})</span>
           </div>
         </div>

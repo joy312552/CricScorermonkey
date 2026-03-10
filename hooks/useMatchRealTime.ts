@@ -37,8 +37,9 @@ export const useMatchRealTime = (matchId: string | undefined) => {
           filter: `id=eq.${matchId}`,
         },
         (payload) => {
+          console.log('[REALTIME] Match update received:', payload);
           if (payload.new) {
-            setMatch(payload.new as Match);
+            setMatch(prev => prev ? { ...prev, ...payload.new } : (payload.new as Match));
           }
         }
       )

@@ -80,8 +80,8 @@ export const Home: React.FC = () => {
       {/* Hero Header with Login Form */}
       <section className="relative pt-12 pb-24 md:pt-20 md:pb-32 overflow-hidden border-b border-slate-50">
         <div className="absolute top-0 left-0 w-full h-full -z-10">
-          <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-emerald-50 rounded-full blur-3xl opacity-60" />
-          <div className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-blue-50 rounded-full blur-3xl opacity-40" />
+          <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-emerald-100 rounded-full blur-3xl opacity-60" />
+          <div className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-emerald-50 rounded-full blur-3xl opacity-40" />
         </div>
 
         <div className="max-w-7xl mx-auto px-6">

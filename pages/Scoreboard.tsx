@@ -174,12 +174,12 @@ export const Scoreboard: React.FC = () => {
         {/* Team Cards */}
         <div className="flex flex-col md:flex-row gap-4">
           <TeamCard 
-            name={match.team_a} 
+            name={match.team_a_name || 'Team A'} 
             score={`${match.runs}/${match.wickets}`} 
             overs={match.overs.toFixed(1)} 
           />
           <TeamCard 
-            name={match.team_b} 
+            name={match.team_b_name || 'Team B'} 
             score="0/0" 
             overs="0.0" 
             isYetToBat 

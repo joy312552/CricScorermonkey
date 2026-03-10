@@ -22,8 +22,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, canEdit, onDelete }
   };
 
   const config = statusConfig[match.status] || statusConfig.upcoming;
-  const teamA = match.team_a || 'Team A';
-  const teamB = match.team_b || 'Team B';
+  const teamA = match.team_a_name || 'Team A';
+  const teamB = match.team_b_name || 'Team B';
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -85,14 +85,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, canEdit, onDelete }
         <div className="flex flex-col gap-8 mb-10 flex-1">
           <div className="flex items-center justify-between gap-6">
             <div className="flex-1 text-center">
-               <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-tight mb-1">{teamA}</h3>
+               <h3 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight leading-tight mb-1">{teamA}</h3>
                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Home</span>
             </div>
-            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center border border-slate-100">
-               <span className="text-xs font-black text-slate-300 italic">VS</span>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-50 rounded-full flex items-center justify-center border border-slate-100 shrink-0">
+               <span className="text-[10px] sm:text-xs font-black text-slate-300 italic">VS</span>
             </div>
             <div className="flex-1 text-center">
-               <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-tight mb-1">{teamB}</h3>
+               <h3 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight leading-tight mb-1">{teamB}</h3>
                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Away</span>
             </div>
           </div>

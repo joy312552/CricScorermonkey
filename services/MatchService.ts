@@ -3,12 +3,13 @@ import { supabase } from '../supabase';
 import { Match, BallEvent, OverlayCommand, Team, Tournament, Player } from '../types';
 
 export const MatchService = {
-  async createMatch(teamA: string, teamB: string, matchOvers: number, userId: string) {
+  async createMatch(teamAId: string, teamBId: string, tournamentId: string, matchOvers: number, userId: string) {
     const { data, error } = await supabase
       .from('matches')
       .insert([{ 
-        team_a: teamA, 
-        team_b: teamB, 
+        team_a_id: teamAId, 
+        team_b_id: teamBId, 
+        tournament_id: tournamentId,
         match_overs: matchOvers,
         created_by: userId,
         runs: 0,
@@ -22,9 +23,8 @@ export const MatchService = {
         current_innings: 1,
         fours: 0,
         sixes: 0,
-        tournament_name: 'CricScore Pro League',
-        series_name: 'T20 Series',
-        venue: 'International Stadium'
+        venue: 'International Stadium',
+        overlay_theme: 'theme1'
       }])
       .select()
       .single();
@@ -36,34 +36,68 @@ export const MatchService = {
   async getMatchById(matchId: string): Promise<Match | null> {
     const { data, error } = await supabase
       .from('matches')
-      .select('*')
+      .select(`
+        *,
+        team_a:teams!team_a_id(team_name),
+        team_b:teams!team_b_id(team_name),
+        tournament:tournaments(tournament_name)
+      `)
       .eq('id', matchId)
       .single();
     
     if (error || !data) return null;
-    return data as Match;
+    
+    // Flatten the joined data
+    return {
+      ...data,
+      team_a_name: data.team_a?.team_name,
+      team_b_name: data.team_b?.team_name,
+      tournament_name: data.tournament?.tournament_name
+    } as Match;
   },
 
   async getMatchesByUser(userId: string): Promise<Match[]> {
     const { data, error } = await supabase
       .from('matches')
-      .select('*')
+      .select(`
+        *,
+        team_a:teams!team_a_id(team_name),
+        team_b:teams!team_b_id(team_name),
+        tournament:tournaments(tournament_name)
+      `)
       .eq('created_by', userId)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return data as Match[];
+    
+    return (data || []).map(m => ({
+      ...m,
+      team_a_name: m.team_a?.team_name,
+      team_b_name: m.team_b?.team_name,
+      tournament_name: m.tournament?.tournament_name
+    })) as Match[];
   },
 
   async getPublicLiveMatches(): Promise<Match[]> {
     const { data, error } = await supabase
       .from('matches')
-      .select('*')
+      .select(`
+        *,
+        team_a:teams!team_a_id(team_name),
+        team_b:teams!team_b_id(team_name),
+        tournament:tournaments(tournament_name)
+      `)
       .eq('status', 'live')
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return data as Match[];
+    
+    return (data || []).map(m => ({
+      ...m,
+      team_a_name: m.team_a?.team_name,
+      team_b_name: m.team_b?.team_name,
+      tournament_name: m.tournament?.tournament_name
+    })) as Match[];
   },
 
   async updateTheme(matchId: string, theme: string) {
@@ -78,7 +112,8 @@ export const MatchService = {
     return data as Match;
   },
 
-  async recordBall(matchId: string, runs: number, isWicket: boolean, extraType?: string) {
+  async recordBall(matchId: string, runs: number, isWicket: boolean, extraType?: string, dismissalType?: string, fielderId?: string) {
+    console.log(`[SCORING] recordBall called for match ${matchId} | runs: ${runs} | wicket: ${isWicket} | extra: ${extraType} | dismissal: ${dismissalType}`);
     // 1. Fetch current state with fresh data
     const { data: match, error: fetchError } = await supabase
       .from('matches')
@@ -103,30 +138,64 @@ export const MatchService = {
     console.log(`[SCORING] Match: ${matchId} | Before: ${match.balls} | After: ${nextBalls} | Legal: ${isLegalBall}`);
 
     // 3. Insert Ball Event
-    const { error: ballError } = await supabase
-      .from('ball_events')
-      .insert([{
-        match_id: matchId,
-        runs: runs,
-        extra_type: extraType || 'none',
-        wicket: isWicket,
-        over_number: Math.floor((match.balls || 0) / 6),
-        ball_number: ((match.balls || 0) % 6) + 1,
-        innings: match.current_innings || 1
-      }]);
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    let ballError;
+    if (user) {
+      // Try with user_id first (preferred)
+      const { error } = await supabase
+        .from('ball_events')
+        .insert([{
+          match_id: matchId,
+          user_id: user.id,
+          runs: runs,
+          extra_type: extraType || 'none',
+          wicket: isWicket,
+          dismissal_type: dismissalType || null,
+          fielder_id: fielderId || null,
+          over_number: Math.floor((match.balls || 0) / 6),
+          ball_number: ((match.balls || 0) % 6) + 1,
+          innings: match.current_innings || 1
+        }]);
+      ballError = error;
+
+      // Fallback if column doesn't exist yet
+      if (ballError && ballError.message.includes("Could not find the 'user_id' column")) {
+        const { error: fallbackError } = await supabase
+          .from('ball_events')
+          .insert([{
+            match_id: matchId,
+            runs: runs,
+            extra_type: extraType || 'none',
+            wicket: isWicket,
+            dismissal_type: dismissalType || null,
+            fielder_id: fielderId || null,
+            over_number: Math.floor((match.balls || 0) / 6),
+            ball_number: ((match.balls || 0) % 6) + 1,
+            innings: match.current_innings || 1
+          }]);
+        ballError = fallbackError;
+      }
+    } else {
+      // No user, try direct (will likely fail RLS but we try)
+      const { error } = await supabase
+        .from('ball_events')
+        .insert([{
+          match_id: matchId,
+          runs: runs,
+          extra_type: extraType || 'none',
+          wicket: isWicket,
+          dismissal_type: dismissalType || null,
+          fielder_id: fielderId || null,
+          over_number: Math.floor((match.balls || 0) / 6),
+          ball_number: ((match.balls || 0) % 6) + 1,
+          innings: match.current_innings || 1
+        }]);
+      ballError = error;
+    }
 
     if (ballError) {
-      console.error('Ball insertion failed. Details:', {
-        message: ballError.message,
-        code: ballError.code,
-        hint: ballError.hint,
-        details: ballError.details
-      });
-      
-      // If it's a cache error, we throw a specific message
-      if (ballError.code === 'PGRST205') {
-        throw new Error('Database API cache is stale. Please refresh the page or wait 30 seconds.');
-      }
+      console.error('Ball insertion failed. Details:', ballError);
       throw ballError;
     }
 
@@ -183,6 +252,7 @@ export const MatchService = {
     }
 
     // 5. Final Update
+    console.log(`[SCORING] Updating match summary for ${matchId}...`);
     const { data: updatedMatch, error: matchError } = await supabase
       .from('matches')
       .update({
@@ -212,6 +282,7 @@ export const MatchService = {
       console.error('Match summary update failed:', matchError);
       throw matchError;
     }
+    console.log(`[SCORING] Match summary updated successfully:`, updatedMatch);
     return updatedMatch as Match;
   },
 
@@ -323,6 +394,15 @@ export const MatchService = {
     return data as Player[];
   },
 
+  async getPlayersByTeam(teamId: string): Promise<Player[]> {
+    const { data, error } = await supabase
+      .from('players')
+      .select('*')
+      .eq('team_id', teamId);
+    if (error) throw error;
+    return data as Player[];
+  },
+
   async createPlayer(userId: string, teamId: string, playerName: string, jerseyNumber: number, role: string) {
     const { data, error } = await supabase
       .from('players')
@@ -340,15 +420,45 @@ export const MatchService = {
   },
 
   async sendOverlayCommand(matchId: string, command: string, payload: any = {}) {
-    const { error } = await supabase
-      .from('overlay_commands')
-      .insert([{
-        match_id: matchId,
-        command,
-        payload,
-        visible: true
-      }]);
-    if (error) throw error;
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    let commandError;
+    if (user) {
+      const { error } = await supabase
+        .from('overlay_commands')
+        .insert([{
+          match_id: matchId,
+          user_id: user.id,
+          command,
+          payload,
+          visible: true
+        }]);
+      commandError = error;
+
+      if (commandError && commandError.message.includes("Could not find the 'user_id' column")) {
+        const { error: fallbackError } = await supabase
+          .from('overlay_commands')
+          .insert([{
+            match_id: matchId,
+            command,
+            payload,
+            visible: true
+          }]);
+        commandError = fallbackError;
+      }
+    } else {
+      const { error } = await supabase
+        .from('overlay_commands')
+        .insert([{
+          match_id: matchId,
+          command,
+          payload,
+          visible: true
+        }]);
+      commandError = error;
+    }
+
+    if (commandError) throw commandError;
   },
 
   async hideOverlay(matchId: string) {

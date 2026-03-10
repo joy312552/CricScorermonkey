@@ -5,8 +5,10 @@ import { Match, BallEvent } from '../../types';
 import { MatchService } from '../../services/MatchService';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-export const ComparisonLineChart: React.FC<{ match: Match }> = ({ match }) => {
+export const ComparisonLineChart: React.FC<{ match: Match, theme?: string }> = ({ match, theme = 'theme1' }) => {
   const [data, setData] = useState<any[]>([]);
+  const isTheme2 = theme === 'theme2';
+  const isTheme3 = theme === 'theme3';
 
   useEffect(() => {
     const fetchData = async () => {
@@ -87,7 +89,11 @@ export const ComparisonLineChart: React.FC<{ match: Match }> = ({ match }) => {
       transition={{ type: 'spring', damping: 20, stiffness: 100 }}
       className="absolute inset-0 flex items-center justify-center z-[100] pointer-events-none select-none font-sans italic"
     >
-      <div className="w-[90%] max-w-5xl bg-gradient-to-br from-[#0A1128] to-[#1A237E] rounded-lg overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border-2 border-white/10 relative">
+      <div className={`w-[90%] max-w-5xl rounded-lg overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border-2 border-white/10 relative ${
+        isTheme2 ? 'bg-gradient-to-br from-slate-900 to-slate-800' : 
+        isTheme3 ? 'bg-gradient-to-br from-emerald-950 to-emerald-900' : 
+        'bg-gradient-to-br from-[#0A1128] to-[#1A237E]'
+      }`}>
         {/* Glossy Overlay */}
         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none" />
         
@@ -101,8 +107,12 @@ export const ComparisonLineChart: React.FC<{ match: Match }> = ({ match }) => {
         
         {/* Side Accents */}
         <div className="absolute left-0 top-0 bottom-0 w-32 overflow-hidden pointer-events-none">
-          <div className="absolute -left-16 top-0 w-32 h-full bg-yellow-400 transform skew-x-[-15deg]" />
-          <div className="absolute -left-20 top-0 w-32 h-full bg-cyan-400 transform skew-x-[-15deg] opacity-50 ml-4" />
+          <div className={`absolute -left-16 top-0 w-32 h-full transform skew-x-[-15deg] ${
+            isTheme2 ? 'bg-slate-600' : isTheme3 ? 'bg-emerald-600' : 'bg-yellow-400'
+          }`} />
+          <div className={`absolute -left-20 top-0 w-32 h-full transform skew-x-[-15deg] opacity-50 ml-4 ${
+            isTheme2 ? 'bg-slate-400' : isTheme3 ? 'bg-emerald-400' : 'bg-cyan-400'
+          }`} />
         </div>
 
         <div className="relative z-10 p-8 pl-24 pr-12">
@@ -113,45 +123,47 @@ export const ComparisonLineChart: React.FC<{ match: Match }> = ({ match }) => {
             </p>
           </div>
 
-          <div className="h-[400px] w-full bg-[#B0B8C3] rounded-sm p-6 relative overflow-hidden">
+          <div className={`h-[400px] w-full rounded-sm p-6 relative overflow-hidden ${
+            isTheme2 ? 'bg-slate-800/50' : isTheme3 ? 'bg-emerald-900/50' : 'bg-[#B0B8C3]'
+          }`}>
             <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
             
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data} margin={{ top: 40, right: 30, left: 20, bottom: 20 }}>
                 <defs>
                   <linearGradient id="colorTeam1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2C4C7E" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#2C4C7E" stopOpacity={0}/>
+                    <stop offset="5%" stopColor={isTheme2 ? "#94a3b8" : isTheme3 ? "#10b981" : "#2C4C7E"} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={isTheme2 ? "#94a3b8" : isTheme3 ? "#10b981" : "#2C4C7E"} stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="colorTeam2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#B25E41" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#B25E41" stopOpacity={0}/>
+                    <stop offset="5%" stopColor={isTheme2 ? "#cbd5e1" : isTheme3 ? "#34d399" : "#B25E41"} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={isTheme2 ? "#cbd5e1" : isTheme3 ? "#34d399" : "#B25E41"} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="0" stroke="rgba(0,0,0,0.1)" vertical={false} />
+                <CartesianGrid strokeDasharray="0" stroke={isTheme2 || isTheme3 ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"} vertical={false} />
                 <XAxis 
                   dataKey="over" 
-                  stroke="#333" 
+                  stroke={isTheme2 || isTheme3 ? "#fff" : "#333"} 
                   fontSize={12} 
                   tickLine={false} 
-                  axisLine={{ stroke: '#333', strokeWidth: 1 }}
-                  label={{ value: 'OVERS', position: 'bottom', fill: '#333', fontSize: 12, fontWeight: 'bold', offset: 0 }}
+                  axisLine={{ stroke: isTheme2 || isTheme3 ? "#fff" : "#333", strokeWidth: 1 }}
+                  label={{ value: 'OVERS', position: 'bottom', fill: isTheme2 || isTheme3 ? "#fff" : "#333", fontSize: 12, fontWeight: 'bold', offset: 0 }}
                 />
                 <YAxis 
-                  stroke="#333" 
+                  stroke={isTheme2 || isTheme3 ? "#fff" : "#333"} 
                   fontSize={12} 
                   tickLine={false} 
                   axisLine={false}
-                  label={{ value: 'RUNS', angle: -90, position: 'insideLeft', fill: '#333', fontSize: 12, fontWeight: 'bold' }}
+                  label={{ value: 'RUNS', angle: -90, position: 'insideLeft', fill: isTheme2 || isTheme3 ? "#fff" : "#333", fontSize: 12, fontWeight: 'bold' }}
                 />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#0A1128', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: isTheme2 ? '#0f172a' : isTheme3 ? '#064e3b' : '#0A1128', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }}
                   itemStyle={{ color: '#fff' }}
                 />
                 <Area 
                   type="monotone" 
                   dataKey="team1" 
-                  stroke="#2C4C7E" 
+                  stroke={isTheme2 ? "#94a3b8" : isTheme3 ? "#10b981" : "#2C4C7E"} 
                   strokeWidth={4}
                   fill="url(#colorTeam1)" 
                   fillOpacity={0.3}
@@ -160,7 +172,7 @@ export const ComparisonLineChart: React.FC<{ match: Match }> = ({ match }) => {
                 <Area 
                   type="monotone" 
                   dataKey="team2" 
-                  stroke="#B25E41" 
+                  stroke={isTheme2 ? "#cbd5e1" : isTheme3 ? "#34d399" : "#B25E41"} 
                   strokeWidth={4}
                   fill="url(#colorTeam2)" 
                   fillOpacity={0.3}
@@ -172,27 +184,29 @@ export const ComparisonLineChart: React.FC<{ match: Match }> = ({ match }) => {
             {/* Legend */}
             <div className="flex justify-center gap-8 mt-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-[#2C4C7E] rounded-sm" />
-                <span className="text-[#333] text-xs font-bold uppercase">{match.team_a}</span>
+                <div className={`w-3 h-3 rounded-sm ${isTheme2 ? 'bg-slate-400' : isTheme3 ? 'bg-emerald-500' : 'bg-[#2C4C7E]'}`} />
+                <span className={`${isTheme2 || isTheme3 ? 'text-white' : 'text-[#333]'} text-xs font-bold uppercase`}>{match.team_a}</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-[#B25E41] rounded-sm" />
-                <span className="text-[#333] text-xs font-bold uppercase">{match.team_b}</span>
+                <div className={`w-3 h-3 rounded-sm ${isTheme2 ? 'bg-slate-300' : isTheme3 ? 'bg-emerald-400' : 'bg-[#B25E41]'}`} />
+                <span className={`${isTheme2 || isTheme3 ? 'text-white' : 'text-[#333]'} text-xs font-bold uppercase`}>{match.team_b}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="bg-[#0A1128] h-16 grid grid-cols-2 gap-px relative overflow-hidden border-t-2 border-white/20">
-          <div className="bg-[#2C4C7E] flex items-center justify-between px-12 relative overflow-hidden">
+        <div className={`h-16 grid grid-cols-2 gap-px relative overflow-hidden border-t-2 border-white/20 ${
+          isTheme2 ? 'bg-slate-950' : isTheme3 ? 'bg-emerald-950' : 'bg-[#0A1128]'
+        }`}>
+          <div className={`${isTheme2 ? 'bg-slate-800' : isTheme3 ? 'bg-emerald-800' : 'bg-[#2C4C7E]'} flex items-center justify-between px-12 relative overflow-hidden`}>
             <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
             <span className="text-white font-black text-3xl tracking-tighter z-10">{team1Total}-{team1Wkts}</span>
             <span className="text-white/80 font-bold text-xl uppercase z-10">
               {match.current_innings === 1 ? match.overs.toFixed(1) : (match.match_overs || 20).toFixed(1)} OVERS
             </span>
           </div>
-          <div className="bg-[#B25E41] flex items-center justify-between px-12 relative overflow-hidden">
+          <div className={`${isTheme2 ? 'bg-slate-700' : isTheme3 ? 'bg-emerald-700' : 'bg-[#B25E41]'} flex items-center justify-between px-12 relative overflow-hidden`}>
             <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
             <span className="text-white font-black text-3xl tracking-tighter z-10">{team2Total}-{team2Wkts}</span>
             <span className="text-white/80 font-bold text-xl uppercase z-10">

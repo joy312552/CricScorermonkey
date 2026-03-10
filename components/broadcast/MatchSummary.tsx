@@ -3,7 +3,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Match } from '../../types';
 
-export const MatchSummary: React.FC<{ match: Match }> = ({ match }) => {
+export const MatchSummary: React.FC<{ match: Match, theme?: string }> = ({ match, theme = 'theme1' }) => {
+  const isTheme2 = theme === 'theme2';
+  const isTheme3 = theme === 'theme3';
+
   return (
     <motion.div 
       initial={{ scale: 0.8, opacity: 0 }}
@@ -12,7 +15,9 @@ export const MatchSummary: React.FC<{ match: Match }> = ({ match }) => {
       transition={{ type: 'spring', damping: 20, stiffness: 100 }}
       className="absolute inset-0 flex items-center justify-center z-[100] pointer-events-none select-none font-sans italic"
     >
-      <div className="w-[90%] max-w-5xl bg-gradient-to-br from-[#0A1128] to-[#1A237E] rounded-lg overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border-2 border-white/10 relative">
+      <div className={`w-[90%] max-w-5xl rounded-lg overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border-2 border-white/10 relative ${
+        isTheme2 ? 'bg-gradient-to-br from-slate-900 to-slate-800' : isTheme3 ? 'bg-gradient-to-br from-emerald-900 to-emerald-800' : 'bg-gradient-to-br from-[#0A1128] to-[#1A237E]'
+      }`}>
         {/* Glossy Overlay */}
         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none" />
         

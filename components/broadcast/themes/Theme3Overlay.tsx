@@ -40,7 +40,7 @@ export const Theme3Overlay: React.FC<ThemeOverlayProps> = ({ match, recentBalls,
         <div className="flex items-stretch h-16 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
           {/* TEAM NAME */}
           <div className="bg-[#002147] px-8 flex items-center border-r-4 border-[#FFD700]">
-            <span className="text-white font-black text-2xl uppercase tracking-tighter">{match.team_a}</span>
+            <span className="text-white font-black text-2xl uppercase tracking-tighter">{match.team_a_name || 'Team A'}</span>
           </div>
           
           {/* SCORE */}

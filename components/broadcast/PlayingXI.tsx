@@ -3,7 +3,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Match } from '../../types';
 
-export const PlayingXI: React.FC<{ match: Match }> = ({ match }) => {
+export const PlayingXI: React.FC<{ match: Match, isIndia?: boolean, theme?: string }> = ({ match, isIndia, theme = 'theme1' }) => {
+  const isTheme2 = theme === 'theme2';
+  const isTheme3 = theme === 'theme3';
+
   // Mock players for both teams
   const teamAPlayers = [
     { name: 'ROHIT SHARMA', no: 45, role: 'C' },
@@ -43,7 +46,9 @@ export const PlayingXI: React.FC<{ match: Match }> = ({ match }) => {
     >
       <div className="flex items-center gap-4">
         {/* Jersey Icon Placeholder */}
-        <div className={`w-8 h-8 rounded-sm flex items-center justify-center relative overflow-hidden ${teamColor === 'blue' ? 'bg-blue-600' : 'bg-yellow-500'}`}>
+        <div className={`w-8 h-8 rounded-sm flex items-center justify-center relative overflow-hidden ${
+          teamColor === 'blue' ? (isTheme3 ? 'bg-emerald-600' : 'bg-blue-600') : (isTheme2 ? 'bg-slate-600' : 'bg-yellow-500')
+        }`}>
           <div className="absolute inset-0 bg-gradient-to-tr from-black/20 to-transparent" />
           <span className="text-white font-black text-[10px] z-10">{player.no}</span>
         </div>
@@ -64,12 +69,18 @@ export const PlayingXI: React.FC<{ match: Match }> = ({ match }) => {
       transition={{ type: 'spring', damping: 25, stiffness: 120 }}
       className="absolute inset-0 flex items-center justify-center z-[100] pointer-events-none select-none font-sans italic p-12"
     >
-      <div className="w-full max-w-6xl bg-gradient-to-br from-[#0A1128] to-[#1A237E] rounded-lg overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border-2 border-white/10 relative flex flex-col">
+      <div className={`w-full max-w-6xl rounded-lg overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border-2 border-white/10 relative flex flex-col ${
+        isTheme2 ? 'bg-gradient-to-br from-slate-900 to-slate-800' : 
+        isTheme3 ? 'bg-gradient-to-br from-emerald-950 to-emerald-900' : 
+        'bg-gradient-to-br from-[#0A1128] to-[#1A237E]'
+      }`}>
         {/* Glossy Overlay */}
         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none" />
         
         {/* Header */}
-        <div className="bg-[#0A1128] py-4 px-12 border-b-2 border-white/10 flex items-center justify-center relative overflow-hidden">
+        <div className={`py-4 px-12 border-b-2 border-white/10 flex items-center justify-center relative overflow-hidden ${
+          isTheme2 ? 'bg-slate-950' : isTheme3 ? 'bg-emerald-950' : 'bg-[#0A1128]'
+        }`}>
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-[-20deg] animate-pulse" />
           <h2 className="text-white font-black text-4xl uppercase tracking-tighter drop-shadow-lg z-10">PLAYING XI</h2>
         </div>
@@ -77,9 +88,9 @@ export const PlayingXI: React.FC<{ match: Match }> = ({ match }) => {
         {/* Content */}
         <div className="flex-1 grid grid-cols-2 gap-px bg-white/10">
           {/* Team A Column */}
-          <div className="bg-[#0A1128]/40 backdrop-blur-md flex flex-col">
-            <div className="bg-blue-900/40 py-4 px-8 flex items-center gap-4 border-b border-white/10">
-              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg border-2 border-white/20">
+          <div className={`${isTheme2 ? 'bg-slate-900/40' : isTheme3 ? 'bg-emerald-900/40' : 'bg-[#0A1128]/40'} backdrop-blur-md flex flex-col`}>
+            <div className={`${isTheme3 ? 'bg-emerald-800/40' : 'bg-blue-900/40'} py-4 px-8 flex items-center gap-4 border-b border-white/10`}>
+              <div className={`w-12 h-12 rounded-lg flex items-center justify-center shadow-lg border-2 border-white/20 ${isTheme3 ? 'bg-emerald-600' : 'bg-blue-600'}`}>
                 <span className="text-white text-2xl font-black">{match.team_a.charAt(0)}</span>
               </div>
               <h3 className="text-white font-black text-3xl uppercase tracking-tighter">{match.team_a}</h3>
@@ -90,9 +101,9 @@ export const PlayingXI: React.FC<{ match: Match }> = ({ match }) => {
           </div>
 
           {/* Team B Column */}
-          <div className="bg-[#0A1128]/40 backdrop-blur-md flex flex-col border-l border-white/10">
-            <div className="bg-yellow-900/20 py-4 px-8 flex items-center gap-4 border-b border-white/10">
-              <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center shadow-lg border-2 border-white/20">
+          <div className={`${isTheme2 ? 'bg-slate-900/40' : isTheme3 ? 'bg-emerald-900/40' : 'bg-[#0A1128]/40'} backdrop-blur-md flex flex-col border-l border-white/10`}>
+            <div className={`${isTheme2 ? 'bg-slate-800/40' : 'bg-yellow-900/20'} py-4 px-8 flex items-center gap-4 border-b border-white/10`}>
+              <div className={`w-12 h-12 rounded-lg flex items-center justify-center shadow-lg border-2 border-white/20 ${isTheme2 ? 'bg-slate-600' : 'bg-yellow-500'}`}>
                 <span className="text-white text-2xl font-black">{match.team_b.charAt(0)}</span>
               </div>
               <h3 className="text-white font-black text-3xl uppercase tracking-tighter">{match.team_b}</h3>
@@ -104,7 +115,11 @@ export const PlayingXI: React.FC<{ match: Match }> = ({ match }) => {
         </div>
 
         {/* Footer Accent */}
-        <div className="h-2 bg-gradient-to-r from-blue-600 via-cyan-400 to-yellow-500" />
+        <div className={`h-2 bg-gradient-to-r ${
+          isTheme2 ? 'from-slate-600 via-slate-400 to-slate-600' : 
+          isTheme3 ? 'from-emerald-600 via-emerald-400 to-emerald-600' : 
+          'from-blue-600 via-cyan-400 to-yellow-500'
+        }`} />
       </div>
     </motion.div>
   );

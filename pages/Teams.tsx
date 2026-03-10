@@ -17,7 +17,12 @@ export const Teams: React.FC = () => {
   const fetchTeams = async () => {
     if (!user) return;
     try {
-      const data = await MatchService.getTeams(user.id);
+      const { data, error } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
       setTeams(data || []);
     } catch (err) {
       console.error('Error fetching teams:', err);
@@ -35,10 +40,18 @@ export const Teams: React.FC = () => {
     if (!newTeamName.trim() || !user) return;
 
     try {
-      await MatchService.createTeam(user.id, newTeamName.trim());
+      const { error } = await supabase
+        .from('teams')
+        .insert([{ 
+          user_id: user.id, 
+          team_name: newTeamName.trim()
+        }]);
+      if (error) throw error;
+      
       setNewTeamName('');
       fetchTeams();
     } catch (err) {
+      alert('Operation failed. Please try again.');
       console.error('Error adding team:', err);
     }
   };
@@ -50,6 +63,7 @@ export const Teams: React.FC = () => {
       if (error) throw error;
       fetchTeams();
     } catch (err) {
+      alert('Operation failed. Please try again.');
       console.error('Error deleting team:', err);
     }
   };
@@ -68,7 +82,7 @@ export const Teams: React.FC = () => {
           <form onSubmit={handleAddTeam} className="flex gap-4">
             <input
               type="text"
-              placeholder="Enter Team Name (e.g. Mumbai Indians)"
+              placeholder="Team Name (e.g. Blitz)"
               value={newTeamName}
               onChange={(e) => setNewTeamName(e.target.value)}
               className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold focus:border-emerald-500 transition-all outline-none"
@@ -79,18 +93,18 @@ export const Teams: React.FC = () => {
           </form>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {teams.map((team) => (
             <div key={team.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex justify-between items-center group hover:border-emerald-500/20 transition-all">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
+                <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 overflow-hidden">
                   <Users className="w-6 h-6" />
                 </div>
                 <span className="text-lg font-black text-slate-900">{team.team_name}</span>
               </div>
               <button 
                 onClick={() => handleDeleteTeam(team.id)}
-                className="p-2 text-slate-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                className="p-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors shadow-lg shadow-red-100"
               >
                 <Trash2 className="w-5 h-5" />
               </button>

@@ -41,7 +41,7 @@ export const Theme2Overlay: React.FC<ThemeOverlayProps> = ({ match, recentBalls,
         <div className="flex items-center px-8 gap-6 border-r border-white/5">
           <div className="flex flex-col">
             <span className="text-cyan-400 text-[10px] font-bold uppercase tracking-widest">MATCH LIVE</span>
-            <span className="text-white font-black text-2xl tracking-tighter uppercase">{match.team_a}</span>
+            <span className="text-white font-black text-2xl tracking-tighter uppercase">{match.team_a_name || 'Team A'}</span>
           </div>
           <div className="h-10 w-[1px] bg-white/10" />
           <div className="flex items-baseline gap-2">

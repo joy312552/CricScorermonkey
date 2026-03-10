@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
+import { MatchService } from '../services/MatchService';
 import { Match, BallEvent } from '../types';
 
 export const useMatchScoreboard = (matchId: string | undefined) => {
@@ -14,14 +15,8 @@ export const useMatchScoreboard = (matchId: string | undefined) => {
     const fetchInitialData = async () => {
       try {
         // Fetch match
-        const { data: matchData, error: matchError } = await supabase
-          .from('matches')
-          .select('*')
-          .eq('id', matchId)
-          .single();
-        
-        if (matchError) throw matchError;
-        setMatch(matchData as Match);
+        const matchData = await MatchService.getMatchById(matchId);
+        if (matchData) setMatch(matchData);
 
         // Fetch last 12 ball events (to cover current and last over)
         const { data: ballData, error: ballError } = await supabase
@@ -55,7 +50,9 @@ export const useMatchScoreboard = (matchId: string | undefined) => {
           filter: `id=eq.${matchId}`,
         },
         (payload) => {
-          setMatch(payload.new as Match);
+          if (payload.new) {
+            setMatch(prev => prev ? { ...prev, ...payload.new } : (payload.new as Match));
+          }
         }
       )
       .on(

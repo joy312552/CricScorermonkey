@@ -12,17 +12,27 @@ export const Players: React.FC = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: '', jersey: '', teamId: '', role: 'Batter' });
+  const [form, setForm] = useState({ name: '', jersey: '', teamId: '' });
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const fetchData = async () => {
     if (!user) return;
     try {
-      const [playersData, teamsData] = await Promise.all([
-        MatchService.getPlayers(user.id),
-        MatchService.getTeams(user.id)
-      ]);
+      const { data: playersData, error: playersError } = await supabase
+        .from('players')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (playersError) throw playersError;
+      if (teamsError) throw teamsError;
+
       setPlayers(playersData || []);
       setTeams(teamsData || []);
     } catch (err) {
@@ -41,27 +51,33 @@ export const Players: React.FC = () => {
     if (!form.name.trim() || !form.teamId || !user) return;
 
     try {
-      await MatchService.createPlayer(
-        user.id, 
-        form.teamId, 
-        form.name.trim(), 
-        parseInt(form.jersey) || 0, 
-        form.role
-      );
-      setForm({ name: '', jersey: '', teamId: '', role: 'Batter' });
+      const { error } = await supabase
+        .from('players')
+        .insert([{ 
+          user_id: user.id, 
+          team_id: form.teamId, 
+          player_name: form.name.trim(), 
+          jersey_number: parseInt(form.jersey) || 0,
+          role: 'Player'
+        }]);
+      if (error) throw error;
+      
+      setForm({ name: '', jersey: '', teamId: '' });
       fetchData();
     } catch (err) {
+      alert('Operation failed. Please try again.');
       console.error('Error adding player:', err);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this player?')) return;
+    if (!window.confirm('Delete this player?')) return;
     try {
       const { error } = await supabase.from('players').delete().eq('id', id);
       if (error) throw error;
       fetchData();
     } catch (err) {
+      alert('Operation failed. Please try again.');
       console.error('Error deleting player:', err);
     }
   };
@@ -77,7 +93,7 @@ export const Players: React.FC = () => {
         </div>
 
         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-          <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <input
               type="text"
               placeholder="Player Name"
@@ -100,23 +116,13 @@ export const Players: React.FC = () => {
               <option value="">Select Team</option>
               {teams.map(t => <option key={t.id} value={t.id}>{t.team_name}</option>)}
             </select>
-            <select
-              value={form.role}
-              onChange={(e) => setForm(prev => ({ ...prev, role: e.target.value }))}
-              className="bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 text-sm font-bold focus:border-emerald-500 transition-all outline-none"
-            >
-              <option value="Batter">Batter</option>
-              <option value="Bowler">Bowler</option>
-              <option value="All-Rounder">All-Rounder</option>
-              <option value="Wicket-Keeper">Wicket-Keeper</option>
-            </select>
             <Button type="submit" className="rounded-2xl">
-              <Plus className="w-5 h-5" /> Add
+              <Plus className="w-5 h-5" /> Add Player
             </Button>
           </form>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {players.map((p) => (
             <div key={p.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex justify-between items-center group hover:border-emerald-500/20 transition-all">
               <div className="flex items-center gap-4">
@@ -126,13 +132,13 @@ export const Players: React.FC = () => {
                 <div>
                   <span className="text-lg font-black text-slate-900 block">{p.player_name}</span>
                   <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                    #{p.jersey_number} • {p.role}
+                    #{p.jersey_number} • {teams.find(t => t.id === p.team_id)?.team_name}
                   </span>
                 </div>
               </div>
               <button 
                 onClick={() => handleDelete(p.id)}
-                className="p-2 text-slate-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                className="p-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors shadow-lg shadow-red-100"
               >
                 <Trash2 className="w-5 h-5" />
               </button>

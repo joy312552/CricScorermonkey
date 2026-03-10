@@ -18,36 +18,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (id: string, email: string) => {
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Profile fetch timeout')), 4000)
-    );
+  const fetchProfile = async (id: string, email: string, retries = 2): Promise<User> => {
+    for (let i = 0; i <= retries; i++) {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
+      );
 
-    try {
-      const fetchPromise = supabase
-        .from('profiles')
-        .select('name, username')
-        .eq('id', id)
-        .maybeSingle();
+      try {
+        const fetchPromise = supabase
+          .from('profiles')
+          .select('name, username')
+          .eq('id', id)
+          .maybeSingle();
 
-      const result: any = await Promise.race([fetchPromise, timeoutPromise]);
-      const { data, error } = result;
-      
-      if (error) {
-        throw error;
+        const result: any = await Promise.race([fetchPromise, timeoutPromise]);
+        const { data, error } = result;
+        
+        if (error) {
+          throw error;
+        }
+
+        if (data) {
+          return {
+            id,
+            email,
+            name: data.name,
+            username: data.username,
+            role: 'scorer' as Role
+          };
+        }
+        
+        // If data is null, it means profile doesn't exist yet, no need to retry
+        break;
+      } catch (err: any) {
+        if (i === retries) {
+          console.warn("Profile fetch issue after retries, using fallback:", err.message);
+        } else {
+          console.log(`Profile fetch attempt ${i + 1} failed, retrying...`);
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        }
       }
-
-      if (data) {
-        return {
-          id,
-          email,
-          name: data.name,
-          username: data.username,
-          role: 'scorer' as Role
-        };
-      }
-    } catch (err: any) {
-      console.warn("Profile fetch issue, using fallback:", err.message);
     }
     
     // Default fallback

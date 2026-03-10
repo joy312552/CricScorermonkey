@@ -137,9 +137,6 @@ export const CenteredScoreboard: React.FC<CenteredScoreboardProps> = ({
             {overs} <span className="text-slate-400 font-bold text-[10px]">OVERS</span>
           </span>
           <div className="flex gap-4 mt-1">
-            <span className="text-blue-700 font-black text-[10px] uppercase tracking-widest">
-              CRR: {displayCrr}
-            </span>
             {rrr && (
               <span className="text-red-600 font-black text-[10px] uppercase tracking-widest">
                 RRR: {rrr}

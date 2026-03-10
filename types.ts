@@ -34,7 +34,7 @@ export interface Tournament {
 }
 
 export type ExtraType = 'wide' | 'no-ball' | 'bye' | 'leg-bye' | 'none';
-export type WicketType = 'bowled' | 'caught' | 'lbw' | 'run-out' | 'stumped' | 'hit-wicket' | 'none';
+export type DismissalType = 'Bowled' | 'Caught' | 'LBW' | 'Run Out' | 'Stumped' | 'Hit Wicket' | 'Obstructing Field' | 'Retired Out' | 'none';
 
 export type MatchType = 'T20' | 'ODI' | 'Test' | 'Custom';
 export type MatchStatus = 'upcoming' | 'live' | 'completed';
@@ -47,14 +47,17 @@ export interface BallEvent {
   runs: number;
   extra_type?: string;
   wicket: boolean;
+  dismissal_type?: DismissalType;
+  fielder_id?: string;
   innings: number;
   created_at: string;
 }
 
 export interface Match {
   id: string;
-  team_a: string;
-  team_b: string;
+  team_a_id: string;
+  team_b_id: string;
+  tournament_id?: string;
   runs: number;
   wickets: number;
   balls: number;
@@ -72,13 +75,11 @@ export interface Match {
   updated_at: string;
   
   // New fields for professional broadcast
-  tournament_name?: string;
-  series_name?: string;
   venue?: string;
   match_overs?: number;
   target?: number;
   
-  // Legacy fields for backward compatibility if needed, but we'll try to stick to the new ones
+  // Player specific stats
   striker_runs?: number;
   striker_balls?: number;
   non_striker_runs?: number;
@@ -89,6 +90,11 @@ export interface Match {
   fours?: number;
   sixes?: number;
   overlay_theme?: string;
+
+  // Virtual fields for UI convenience (joined data)
+  team_a_name?: string;
+  team_b_name?: string;
+  tournament_name?: string;
 }
 
 export interface OverlayCommand {

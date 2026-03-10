@@ -3,13 +3,18 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Match } from '../../types';
 
-export const TeamVS: React.FC<{ match: Match }> = ({ match }) => {
+export const TeamVS: React.FC<{ match: Match, theme?: string }> = ({ match, theme = 'theme1' }) => {
+  const isTheme2 = theme === 'theme2';
+  const isTheme3 = theme === 'theme3';
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-[100] font-sans italic"
+      className={`absolute inset-0 flex items-center justify-center backdrop-blur-md z-[100] font-sans italic ${
+        isTheme2 ? 'bg-slate-950/90' : isTheme3 ? 'bg-emerald-950/90' : 'bg-black/60'
+      }`}
     >
       {/* Animated Particles Background (Subtle) */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

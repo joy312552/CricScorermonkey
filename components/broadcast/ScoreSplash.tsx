@@ -4,15 +4,39 @@ import { motion } from 'framer-motion';
 
 interface ScoreSplashProps {
   type: string;
+  theme?: string;
 }
 
-export const ScoreSplash: React.FC<ScoreSplashProps> = ({ type }) => {
+export const ScoreSplash: React.FC<ScoreSplashProps> = ({ type, theme = 'theme1' }) => {
+  const isTheme2 = theme === 'theme2';
+  const isTheme3 = theme === 'theme3';
+
   const config: Record<string, { text: string, color: string, sub: string }> = {
-    'FOUR': { text: 'FOUR', color: 'from-blue-600 to-indigo-600', sub: 'BOUNDARY' },
-    'SIX': { text: 'SIX', color: 'from-purple-600 to-pink-600', sub: 'MAXIMUM' },
-    'WICKET': { text: 'WICKET', color: 'from-red-600 to-orange-600', sub: 'OUT' },
-    'NO BALL': { text: 'NO BALL', color: 'from-yellow-500 to-orange-500', sub: 'FREE HIT' },
-    'WIDE': { text: 'WIDE', color: 'from-blue-400 to-blue-600', sub: 'EXTRA' },
+    'FOUR': { 
+      text: 'FOUR', 
+      color: isTheme2 ? 'from-slate-600 to-slate-800' : isTheme3 ? 'from-emerald-600 to-emerald-800' : 'from-blue-600 to-indigo-600', 
+      sub: 'BOUNDARY' 
+    },
+    'SIX': { 
+      text: 'SIX', 
+      color: isTheme2 ? 'from-slate-700 to-slate-900' : isTheme3 ? 'from-emerald-700 to-emerald-900' : 'from-purple-600 to-pink-600', 
+      sub: 'MAXIMUM' 
+    },
+    'WICKET': { 
+      text: 'WICKET', 
+      color: isTheme2 ? 'from-red-800 to-red-950' : isTheme3 ? 'from-red-700 to-red-900' : 'from-red-600 to-orange-600', 
+      sub: 'OUT' 
+    },
+    'NO BALL': { 
+      text: 'NO BALL', 
+      color: isTheme2 ? 'from-slate-500 to-slate-700' : isTheme3 ? 'from-emerald-500 to-emerald-700' : 'from-yellow-500 to-orange-500', 
+      sub: 'FREE HIT' 
+    },
+    'WIDE': { 
+      text: 'WIDE', 
+      color: isTheme2 ? 'from-slate-400 to-slate-600' : isTheme3 ? 'from-emerald-400 to-emerald-600' : 'from-blue-400 to-blue-600', 
+      sub: 'EXTRA' 
+    },
   };
 
   const item = config[type] || { text: type, color: 'from-slate-700 to-slate-900', sub: '' };

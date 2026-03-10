@@ -73,24 +73,6 @@ export const Theme1Overlay: React.FC<ThemeOverlayProps> = ({ match, recentBalls,
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none select-none italic font-sans">
-      {/* FULL WIDTH ANIMATION OVERLAY */}
-      <AnimatePresence>
-        {(scoreAnimation === 'FOUR' || scoreAnimation === 'SIX' || scoreAnimation === 'WICKET') && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.1 }}
-            className="absolute inset-0 flex items-center justify-center z-[100] bg-gradient-to-r from-transparent via-white/20 to-transparent"
-          >
-            <div className={`${scoreAnimation === 'WICKET' ? 'bg-red-600' : 'bg-yellow-400'} px-20 py-4 shadow-[0_0_50px_rgba(0,0,0,0.3)] border-y-4 border-black transform -skew-x-12`}>
-              <span className={`text-5xl md:text-7xl font-black uppercase tracking-tighter drop-shadow-lg ${scoreAnimation === 'WICKET' ? 'text-white' : 'text-black'}`}>
-                {scoreAnimation === 'FOUR' ? 'FOUR!' : scoreAnimation === 'SIX' ? 'SIXER!' : 'WICKET!'}
-              </span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* MAIN SCOREBOARD CONTAINER */}
       <div className="h-[80px] md:h-[90px] w-full flex items-stretch overflow-hidden shadow-2xl relative">
         {/* Glossy Overlay Effect */}
@@ -103,12 +85,69 @@ export const Theme1Overlay: React.FC<ThemeOverlayProps> = ({ match, recentBalls,
           transition={{ duration: 3, repeat: Infinity, ease: "linear", repeatDelay: 5 }}
           className="absolute inset-0 w-1/2 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-[-20deg] z-30 pointer-events-none"
         />
+
+        {/* INTEGRATED SCORE ANIMATION OVERLAY */}
+        <AnimatePresence>
+          {(scoreAnimation === 'FOUR' || scoreAnimation === 'SIX' || scoreAnimation === 'WICKET') && (
+            <motion.div
+              initial={{ x: '-100%', skewX: -20 }}
+              animate={{ x: '0%', skewX: -20 }}
+              exit={{ x: '100%', skewX: -20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 120 }}
+              className={`absolute inset-0 z-[100] flex items-center justify-center overflow-hidden border-x-4 border-white/30`}
+              style={{ width: '110%', left: '-5%' }} // Over-extend to cover skews
+            >
+              {/* Glossy Background with Gradient */}
+              <div className={`absolute inset-0 ${
+                scoreAnimation === 'WICKET' 
+                  ? 'bg-gradient-to-r from-red-800 via-red-600 to-red-800' 
+                  : 'bg-gradient-to-r from-yellow-600 via-yellow-400 to-yellow-600'
+              } shadow-inner`} />
+              
+              {/* Animated Shine Sweep */}
+              <motion.div
+                initial={{ x: '-150%' }}
+                animate={{ x: '250%' }}
+                transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute inset-0 w-1/2 bg-gradient-to-r from-transparent via-white/60 to-transparent skew-x-[-20deg]"
+              />
+
+              {/* Text with Glossy Effect */}
+              <div className="relative z-10 flex flex-col items-center transform skew-x-[20deg]">
+                <motion.span 
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ 
+                    scale: [1, 1.1, 1],
+                    opacity: 1 
+                  }}
+                  transition={{
+                    scale: { repeat: Infinity, duration: 1, ease: "easeInOut" },
+                    opacity: { duration: 0.3 }
+                  }}
+                  className={`text-4xl md:text-6xl font-black uppercase tracking-tighter italic drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] ${
+                    scoreAnimation === 'WICKET' ? 'text-white' : 'text-black'
+                  }`}
+                >
+                  {scoreAnimation === 'FOUR' ? 'FOUR!' : scoreAnimation === 'SIX' ? 'SIXER!' : 'WICKET!'}
+                </motion.span>
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: '100%' }}
+                  className={`h-1 mt-1 ${scoreAnimation === 'WICKET' ? 'bg-white' : 'bg-black'} opacity-50`}
+                />
+              </div>
+              
+              {/* Glass Reflection Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-transparent pointer-events-none" />
+            </motion.div>
+          )}
+        </AnimatePresence>
         
         {/* SECTION 1: TEAM A NAME */}
         <div className="w-[20%] bg-[#F5F5F5] flex items-center justify-center px-4 border-r border-black/10 relative">
           <div className="absolute top-0 left-0 w-full h-[2px] bg-white/50" />
           <span className="text-black font-black text-sm md:text-lg uppercase leading-tight text-center tracking-tighter">
-            {match.team_a}
+            {match.team_a_name || 'Team A'}
           </span>
         </div>
 
@@ -197,7 +236,7 @@ export const Theme1Overlay: React.FC<ThemeOverlayProps> = ({ match, recentBalls,
         <div className="w-[20%] bg-[#F5F5F5] flex items-center justify-center px-4 relative">
           <div className="absolute top-0 left-0 w-full h-[2px] bg-white/50" />
           <span className="text-black font-black text-sm md:text-lg uppercase leading-tight text-center tracking-tighter">
-            {match.team_b}
+            {match.team_b_name || 'Team B'}
           </span>
         </div>
       </div>
