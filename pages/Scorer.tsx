@@ -140,19 +140,19 @@ export const Scorer: React.FC = () => {
   }, [match?.id, loading, hasInitializedDefault, overlayCommand?.visible]);
 
   if (loading) return (
-    <div className="flex items-center justify-center h-screen bg-slate-950">
+    <div className="flex items-center justify-center h-screen bg-cricket-dark">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-emerald-500 font-black uppercase tracking-widest text-[10px]">Initializing Engine...</p>
+        <div className="w-12 h-12 border-4 border-cricket-green border-t-transparent rounded-full animate-spin" />
+        <p className="text-cricket-green font-black uppercase tracking-widest text-[10px]">Initializing Engine...</p>
       </div>
     </div>
   );
 
   if (!match) return (
-    <div className="flex flex-col items-center justify-center h-screen bg-slate-950 text-white p-6">
+    <div className="flex flex-col items-center justify-center h-screen bg-cricket-dark text-white p-6">
       <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
       <h1 className="text-2xl font-black uppercase tracking-tighter mb-2 text-center">Match Not Found</h1>
-      <button onClick={() => navigate('/dashboard')} className="px-6 py-3 bg-emerald-600 rounded-xl font-black uppercase text-xs tracking-widest">Return to Dashboard</button>
+      <button onClick={() => navigate('/dashboard')} className="px-6 py-3 bg-cricket-green rounded-xl font-black uppercase text-xs tracking-widest">Return to Dashboard</button>
     </div>
   );
 
@@ -336,15 +336,15 @@ export const Scorer: React.FC = () => {
                              (match.current_innings === 2 && match.target && match.runs >= match.target);
 
   return (
-    <div className="h-screen w-screen bg-cricket-light text-slate-900 font-sans overflow-hidden flex flex-col">
+    <div className="h-screen w-screen bg-cricket-gray text-slate-900 font-sans overflow-hidden flex flex-col">
       {/* 1. SLIM HEADER */}
       <header className="h-12 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 shadow-sm">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-emerald-600 rounded-lg">
+          <div className="p-1.5 bg-cricket-green rounded-lg">
             <Radio className="w-4 h-4 text-white animate-pulse" />
           </div>
-          <h1 className="text-xs font-black tracking-tighter text-slate-900 uppercase">
-            CricScore<span className="text-emerald-600">Pro</span> <span className="text-[8px] bg-red-600 text-white px-1.5 py-0.5 rounded-full ml-1">LIVE</span>
+          <h1 className="text-xs font-display font-black tracking-tighter text-slate-900 uppercase">
+            CricScore<span className="text-cricket-green">Pro</span> <span className="text-[8px] bg-red-600 text-white px-1.5 py-0.5 rounded-full ml-1">LIVE</span>
           </h1>
         </div>
         <div className="flex items-center gap-3">
@@ -363,20 +363,20 @@ export const Scorer: React.FC = () => {
 
       {/* 2. COMPACT SCORE PREVIEW */}
       <section className="h-28 sm:h-24 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl -mr-24 -mt-24" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl -ml-24 -mb-24" />
+        <div className="absolute top-0 right-0 w-48 h-48 bg-cricket-green/5 rounded-full blur-3xl -mr-24 -mt-24" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-cricket-green/5 rounded-full blur-3xl -ml-24 -mb-24" />
         
         <div className="relative z-10 flex flex-col w-[30%]">
           <div className="flex items-center gap-1.5 mb-1">
-            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-            <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Match Preview</span>
+            <div className="w-1.5 h-1.5 bg-cricket-green rounded-full" />
+            <span className="text-[8px] font-black text-cricket-green uppercase tracking-widest">Match Preview</span>
           </div>
-          <h2 className="text-[9px] sm:text-sm md:text-base font-black text-slate-900 tracking-tight uppercase truncate">
+          <h2 className="text-[9px] sm:text-sm md:text-base font-display font-black text-slate-900 tracking-tight uppercase truncate">
             {match.team_a_name}
           </h2>
           <div className="flex items-center gap-1">
-             <span className="text-emerald-600 italic text-[7px]">vs</span>
-             <h2 className="text-[9px] sm:text-sm md:text-base font-black text-slate-900 tracking-tight uppercase truncate">
+             <span className="text-cricket-green italic text-[7px]">vs</span>
+             <h2 className="text-[9px] sm:text-sm md:text-base font-display font-black text-slate-900 tracking-tight uppercase truncate">
                {match.team_b_name}
              </h2>
           </div>
@@ -393,7 +393,7 @@ export const Scorer: React.FC = () => {
         </div>
         
         {/* Centered Scoreboard */}
-        <div className="relative z-20 text-center bg-emerald-50 px-4 sm:px-6 py-2 rounded-2xl border border-emerald-100 shadow-sm">
+        <div className="relative z-20 text-center bg-cricket-light px-4 sm:px-6 py-2 rounded-2xl border border-cricket-green/20 shadow-sm">
           {isInningsCompleted ? (
             <div className="flex flex-col items-center gap-2">
               <div className="bg-red-600 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse shadow-lg shadow-red-600/20">
@@ -410,12 +410,12 @@ export const Scorer: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tighter leading-none flex items-baseline justify-center">
-                {match.runs}<span className="text-emerald-300 text-xl sm:text-2xl mx-0.5">/</span>{match.wickets}
+              <div className="text-2xl sm:text-4xl font-display font-black text-slate-900 tracking-tighter leading-none flex items-baseline justify-center">
+                {match.runs}<span className="text-cricket-green/50 text-xl sm:text-2xl mx-0.5">/</span>{match.wickets}
               </div>
               <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1 flex items-center justify-center gap-2">
                 <span>Overs</span>
-                <span className="bg-emerald-600 text-white px-2 py-0.5 rounded-md text-[8px] sm:text-[9px]">{match.overs.toFixed(1)}</span>
+                <span className="bg-cricket-green text-white px-2 py-0.5 rounded-md text-[8px] sm:text-[9px]">{match.overs.toFixed(1)}</span>
               </div>
             </>
           )}
@@ -423,7 +423,7 @@ export const Scorer: React.FC = () => {
 
         <div className="relative z-10 text-right flex flex-col items-end gap-1 w-[30%]">
           {match.target && match.target > 0 && (
-            <div className="bg-slate-900 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl shadow-lg">
+            <div className="bg-cricket-dark text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl shadow-lg">
               <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest block leading-none mb-0.5">Target</span>
               <span className="text-xs sm:text-sm font-black tracking-tighter">{match.target}</span>
             </div>
@@ -437,7 +437,7 @@ export const Scorer: React.FC = () => {
         {/* Scoring Engine */}
         <div className="flex flex-col gap-3 min-h-0">
           <div className="flex items-center gap-2 px-1">
-            <Zap className="w-3 h-3 text-emerald-600" />
+            <Zap className="w-3 h-3 text-cricket-green" />
             <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Scoring Engine</span>
           </div>
           
@@ -448,7 +448,7 @@ export const Scorer: React.FC = () => {
                 key={runs}
                 onClick={() => handleScore(runs)}
                 disabled={isProcessing}
-                className="w-full h-12 bg-white hover:bg-emerald-600 hover:text-white active:scale-95 text-slate-800 rounded-xl text-lg font-black transition-all border border-slate-200 shadow-sm flex items-center justify-center disabled:opacity-50"
+                className="w-full h-12 bg-white hover:bg-cricket-green hover:text-white active:scale-95 text-slate-800 rounded-xl text-lg font-black transition-all border border-slate-200 shadow-sm flex items-center justify-center disabled:opacity-50"
               >
                 {runs}
               </button>
@@ -490,7 +490,7 @@ export const Scorer: React.FC = () => {
             <button onClick={() => setActiveModal('bowler')} disabled={isProcessing} className={`py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-sm transition-all active:scale-95 disabled:opacity-50 ${isInningsCompleted ? 'opacity-50 pointer-events-none' : ''}`}>
               Bowler
             </button>
-            <button onClick={() => setActiveModal('settings')} disabled={isProcessing} className="py-2 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95 disabled:opacity-50">
+            <button onClick={() => setActiveModal('settings')} disabled={isProcessing} className="py-2 bg-cricket-light border border-cricket-green/20 hover:bg-cricket-green/10 text-cricket-dark rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95 disabled:opacity-50">
               <Settings className="w-3 h-3" /> Settings
             </button>
           </div>
@@ -500,13 +500,13 @@ export const Scorer: React.FC = () => {
         <div className="flex-1 flex flex-col gap-1 min-h-0">
           <div className="flex items-center justify-between px-1 shrink-0">
             <div className="flex items-center gap-2">
-              <MonitorPlay className="w-3 h-3 text-blue-600" />
+              <MonitorPlay className="w-3 h-3 text-cricket-green" />
               <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Graphics Engine</span>
             </div>
             <div className="flex items-center gap-3">
               <button 
                 onClick={() => setIsThemesOpen(true)}
-                className="text-[8px] font-black text-emerald-600 hover:text-emerald-700 uppercase flex items-center gap-1 transition-colors"
+                className="text-[8px] font-black text-cricket-green hover:text-cricket-dark uppercase flex items-center gap-1 transition-colors"
               >
                 <Tv className="w-2.5 h-2.5" /> Themes
               </button>
@@ -516,72 +516,126 @@ export const Scorer: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
-            <div className="grid grid-cols-4 gap-1.5">
-              {graphicsButtons.map((btn) => {
-                const isActive = overlayCommand?.visible && overlayCommand.command === btn.cmd;
-                return (
-                  <button
-                    key={btn.label}
-                    onClick={() => sendCommand(btn.cmd)}
-                    className={`py-2.5 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border ${
-                      isActive 
-                        ? "bg-emerald-600 border-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)]" 
-                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm"
-                    }`}
-                  >
-                    <span className="text-[7px] font-black uppercase tracking-widest leading-none">
-                      {btn.label}
-                    </span>
-                  </button>
-                );
-              })}
+          <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-3">
+            {/* Match Graphics */}
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-2">
+              <h4 className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Match Graphics</h4>
+              <div className="grid grid-cols-4 gap-1.5">
+                {graphicsButtons.filter(b => ['DEFAULT_SCOREBOARD', 'TEAM_VS_TEAM', 'TEAM_VS', 'MATCH_SUMMARY', 'TOSS_WINNER', 'TARGET', 'NEED_RUN'].includes(b.cmd)).map((btn) => {
+                  const isActive = overlayCommand?.visible && overlayCommand.command === btn.cmd;
+                  return (
+                    <button
+                      key={btn.label}
+                      onClick={() => sendCommand(btn.cmd)}
+                      className={`py-2 rounded-lg flex flex-col items-center justify-center gap-1 transition-all border ${
+                        isActive 
+                          ? "bg-cricket-green border-cricket-green text-white shadow-sm" 
+                          : "bg-white border-cricket-green/20 text-cricket-dark hover:bg-cricket-light shadow-sm"
+                      }`}
+                    >
+                      <span className="text-[7px] font-black uppercase tracking-widest leading-none text-center">
+                        {btn.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Player Graphics */}
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-2">
+              <h4 className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Player Graphics</h4>
+              <div className="grid grid-cols-4 gap-1.5">
+                {graphicsButtons.filter(b => ['PLAYING_XI', 'BATT_SUMMARY', 'BALL_SUMMARY', 'PARTNERSHIP'].includes(b.cmd)).map((btn) => {
+                  const isActive = overlayCommand?.visible && overlayCommand.command === btn.cmd;
+                  return (
+                    <button
+                      key={btn.label}
+                      onClick={() => sendCommand(btn.cmd)}
+                      className={`py-2 rounded-lg flex flex-col items-center justify-center gap-1 transition-all border ${
+                        isActive 
+                          ? "bg-cricket-green border-cricket-green text-white shadow-sm" 
+                          : "bg-white border-cricket-green/20 text-cricket-dark hover:bg-cricket-light shadow-sm"
+                      }`}
+                    >
+                      <span className="text-[7px] font-black uppercase tracking-widest leading-none text-center">
+                        {btn.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Stats Graphics */}
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-2">
+              <h4 className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Stats Graphics</h4>
+              <div className="grid grid-cols-3 gap-1.5">
+                {graphicsButtons.filter(b => ['BOUNDARY_TRACKER', 'SHOW_CRR', 'SHOW_EXTRA'].includes(b.cmd)).map((btn) => {
+                  const isActive = overlayCommand?.visible && overlayCommand.command === btn.cmd;
+                  return (
+                    <button
+                      key={btn.label}
+                      onClick={() => sendCommand(btn.cmd)}
+                      className={`py-2 rounded-lg flex flex-col items-center justify-center gap-1 transition-all border ${
+                        isActive 
+                          ? "bg-cricket-green border-cricket-green text-white shadow-sm" 
+                          : "bg-white border-cricket-green/20 text-cricket-dark hover:bg-cricket-light shadow-sm"
+                      }`}
+                    >
+                      <span className="text-[7px] font-black uppercase tracking-widest leading-none text-center">
+                        {btn.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Boundary Tracker Specific Controls */}
             {isBoundaryTrackerActive && (
-              <div className="mt-4 p-3 bg-pink-50 border border-pink-100 rounded-xl space-y-3">
+              <div className="mt-4 p-3 bg-cricket-light border border-cricket-green/20 rounded-xl space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-black text-pink-600 uppercase tracking-widest">Boundary Tracker Controls</span>
+                  <span className="text-[9px] font-black text-cricket-dark uppercase tracking-widest">Boundary Tracker Controls</span>
                   <button 
                     onClick={() => updateMatch({ fours: 0, sixes: 0 })}
-                    className="text-[8px] font-black text-pink-400 hover:text-pink-600 uppercase transition-colors"
+                    className="text-[8px] font-black text-slate-400 hover:text-red-500 uppercase transition-colors"
                   >
                     Reset All
                   </button>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[8px] font-black text-pink-400 uppercase">Fours</label>
+                    <label className="text-[8px] font-black text-slate-500 uppercase">Fours</label>
                     <div className="flex items-center gap-2">
                       <button 
                         onClick={() => updateMatch({ fours: Math.max(0, (match.fours || 0) - 1) })}
-                        className="w-6 h-6 bg-white border border-pink-200 rounded flex items-center justify-center text-pink-600 font-bold"
+                        className="w-6 h-6 bg-white border border-cricket-green/20 rounded flex items-center justify-center text-cricket-dark font-bold hover:bg-cricket-light"
                       >
                         -
                       </button>
-                      <span className="text-sm font-black text-pink-600 w-8 text-center">{match.fours || 0}</span>
+                      <span className="text-sm font-black text-cricket-dark w-8 text-center">{match.fours || 0}</span>
                       <button 
                         onClick={() => updateMatch({ fours: (match.fours || 0) + 1 })}
-                        className="w-6 h-6 bg-white border border-pink-200 rounded flex items-center justify-center text-pink-600 font-bold"
+                        className="w-6 h-6 bg-white border border-cricket-green/20 rounded flex items-center justify-center text-cricket-dark font-bold hover:bg-cricket-light"
                       >
                         +
                       </button>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[8px] font-black text-pink-400 uppercase">Sixes</label>
+                    <label className="text-[8px] font-black text-slate-500 uppercase">Sixes</label>
                     <div className="flex items-center gap-2">
                       <button 
                         onClick={() => updateMatch({ sixes: Math.max(0, (match.sixes || 0) - 1) })}
-                        className="w-6 h-6 bg-white border border-pink-200 rounded flex items-center justify-center text-pink-600 font-bold"
+                        className="w-6 h-6 bg-white border border-cricket-green/20 rounded flex items-center justify-center text-cricket-dark font-bold hover:bg-cricket-light"
                       >
                         -
                       </button>
-                      <span className="text-sm font-black text-pink-600 w-8 text-center">{match.sixes || 0}</span>
+                      <span className="text-sm font-black text-cricket-dark w-8 text-center">{match.sixes || 0}</span>
                       <button 
                         onClick={() => updateMatch({ sixes: (match.sixes || 0) + 1 })}
-                        className="w-6 h-6 bg-white border border-pink-200 rounded flex items-center justify-center text-pink-600 font-bold"
+                        className="w-6 h-6 bg-white border border-cricket-green/20 rounded flex items-center justify-center text-cricket-dark font-bold hover:bg-cricket-light"
                       >
                         +
                       </button>
@@ -603,7 +657,7 @@ export const Scorer: React.FC = () => {
         </div>
         <button 
           onClick={() => window.open(`/#/overlay/${match.id}`, '_blank')}
-          className="text-[8px] font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-widest flex items-center gap-1 transition-colors"
+          className="text-[8px] font-black text-cricket-green hover:text-cricket-dark uppercase tracking-widest flex items-center gap-1 transition-colors"
         >
           Open Overlay <ChevronRight className="w-2.5 h-2.5" />
         </button>
@@ -625,11 +679,11 @@ export const Scorer: React.FC = () => {
       {/* MODALS */}
       {isOverlayLinkOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-emerald-100">
-            <div className="p-4 border-b border-emerald-50 flex items-center justify-between bg-emerald-50/50">
-              <h3 className="text-sm font-black text-emerald-900 uppercase tracking-widest">Overlay Link</h3>
-              <button onClick={() => setIsOverlayLinkOpen(false)} className="p-1 hover:bg-emerald-100 rounded-lg transition-colors">
-                <X className="w-4 h-4 text-emerald-600" />
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-cricket-green/20">
+            <div className="p-4 border-b border-cricket-green/10 flex items-center justify-between bg-cricket-light">
+              <h3 className="text-sm font-black text-cricket-dark uppercase tracking-widest">Overlay Link</h3>
+              <button onClick={() => setIsOverlayLinkOpen(false)} className="p-1 hover:bg-cricket-green/10 rounded-lg transition-colors">
+                <X className="w-4 h-4 text-cricket-green" />
               </button>
             </div>
             <div className="p-6 space-y-4">
@@ -642,7 +696,7 @@ export const Scorer: React.FC = () => {
                   navigator.clipboard.writeText(`${window.location.origin}/#/overlay/${match.id}`);
                   alert('Link copied to clipboard!');
                 }}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
+                className="w-full py-3 bg-cricket-green hover:bg-cricket-dark text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-cricket-green/20 transition-all active:scale-95"
               >
                 Copy Link
               </button>
@@ -653,11 +707,11 @@ export const Scorer: React.FC = () => {
 
       {isThemesOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-emerald-100">
-            <div className="p-4 border-b border-emerald-50 flex items-center justify-between bg-emerald-50/50">
-              <h3 className="text-sm font-black text-emerald-900 uppercase tracking-widest">Select Theme</h3>
-              <button onClick={() => setIsThemesOpen(false)} className="p-1 hover:bg-emerald-100 rounded-lg transition-colors">
-                <X className="w-4 h-4 text-emerald-600" />
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-cricket-green/20">
+            <div className="p-4 border-b border-cricket-green/10 flex items-center justify-between bg-cricket-light">
+              <h3 className="text-sm font-black text-cricket-dark uppercase tracking-widest">Select Theme</h3>
+              <button onClick={() => setIsThemesOpen(false)} className="p-1 hover:bg-cricket-green/10 rounded-lg transition-colors">
+                <X className="w-4 h-4 text-cricket-green" />
               </button>
             </div>
             <div className="p-4 grid grid-cols-1 gap-2">
@@ -674,12 +728,12 @@ export const Scorer: React.FC = () => {
                   }}
                   className={`w-full py-4 px-4 rounded-xl text-left flex items-center justify-between border transition-all ${
                     match.overlay_theme === theme.id 
-                      ? "bg-emerald-50 border-emerald-200 text-emerald-900" 
+                      ? "bg-cricket-light border-cricket-green/30 text-cricket-dark" 
                       : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100"
                   }`}
                 >
                   <span className="text-xs font-black uppercase tracking-widest">{theme.name}</span>
-                  {match.overlay_theme === theme.id && <div className="w-2 h-2 bg-emerald-500 rounded-full" />}
+                  {match.overlay_theme === theme.id && <div className="w-2 h-2 bg-cricket-green rounded-full" />}
                 </button>
               ))}
             </div>
@@ -702,7 +756,7 @@ export const Scorer: React.FC = () => {
                 <select 
                   value={settingsForm.striker}
                   onChange={(e) => setSettingsForm({ ...settingsForm, striker: e.target.value })}
-                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-cricket-green outline-none transition-all"
                 >
                   <option value="">Select Striker</option>
                   {battingTeamPlayers.map(p => (
@@ -715,7 +769,7 @@ export const Scorer: React.FC = () => {
                 <select 
                   value={settingsForm.non_striker}
                   onChange={(e) => setSettingsForm({ ...settingsForm, non_striker: e.target.value })}
-                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-cricket-green outline-none transition-all"
                 >
                   <option value="">Select Non-Striker</option>
                   {battingTeamPlayers.map(p => (
@@ -725,7 +779,7 @@ export const Scorer: React.FC = () => {
               </div>
               <button 
                 onClick={() => updateMatch({ striker: settingsForm.striker, non_striker: settingsForm.non_striker })}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
+                className="w-full py-3 bg-cricket-green hover:bg-cricket-dark text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-cricket-green/20 transition-all active:scale-95"
               >
                 Update Batters
               </button>
@@ -749,7 +803,7 @@ export const Scorer: React.FC = () => {
                 <select 
                   value={settingsForm.bowler}
                   onChange={(e) => setSettingsForm({ ...settingsForm, bowler: e.target.value })}
-                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-cricket-green outline-none transition-all"
                 >
                   <option value="">Select Bowler</option>
                   {bowlingTeamPlayers.map(p => (
@@ -759,7 +813,7 @@ export const Scorer: React.FC = () => {
               </div>
               <button 
                 onClick={() => updateMatch({ bowler: settingsForm.bowler })}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
+                className="w-full py-3 bg-cricket-green hover:bg-cricket-dark text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-cricket-green/20 transition-all active:scale-95"
               >
                 Update Bowler
               </button>
@@ -785,7 +839,7 @@ export const Scorer: React.FC = () => {
                     type="number"
                     value={settingsForm.match_overs}
                     onChange={(e) => setSettingsForm({ ...settingsForm, match_overs: parseInt(e.target.value) })}
-                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-cricket-green outline-none transition-all"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -794,7 +848,7 @@ export const Scorer: React.FC = () => {
                     type="number"
                     value={settingsForm.target}
                     onChange={(e) => setSettingsForm({ ...settingsForm, target: parseInt(e.target.value) })}
-                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-cricket-green outline-none transition-all"
                   />
                 </div>
               </div>
@@ -805,7 +859,7 @@ export const Scorer: React.FC = () => {
                   type="text"
                   value={settingsForm.team_a_name}
                   onChange={(e) => setSettingsForm({ ...settingsForm, team_a_name: e.target.value })}
-                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-cricket-green outline-none transition-all"
                 />
               </div>
 
@@ -815,7 +869,7 @@ export const Scorer: React.FC = () => {
                   type="text"
                   value={settingsForm.team_b_name}
                   onChange={(e) => setSettingsForm({ ...settingsForm, team_b_name: e.target.value })}
-                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-cricket-green outline-none transition-all"
                 />
               </div>
 
@@ -825,7 +879,7 @@ export const Scorer: React.FC = () => {
                   type="text"
                   value={settingsForm.venue}
                   onChange={(e) => setSettingsForm({ ...settingsForm, venue: e.target.value })}
-                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-cricket-green outline-none transition-all"
                 />
               </div>
 
@@ -835,7 +889,7 @@ export const Scorer: React.FC = () => {
                   <select 
                     value={settingsForm.toss_winner_id}
                     onChange={(e) => setSettingsForm({ ...settingsForm, toss_winner_id: e.target.value })}
-                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-cricket-green outline-none transition-all"
                   >
                     <option value="">Select Team</option>
                     <option value={match.team_a_id}>{match.team_a_name}</option>
@@ -847,7 +901,7 @@ export const Scorer: React.FC = () => {
                   <select 
                     value={settingsForm.toss_choice}
                     onChange={(e) => setSettingsForm({ ...settingsForm, toss_choice: e.target.value as 'bat' | 'bowl' })}
-                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-cricket-green outline-none transition-all"
                   >
                     <option value="bat">Batting</option>
                     <option value="bowl">Bowling</option>
@@ -860,7 +914,7 @@ export const Scorer: React.FC = () => {
                 <select 
                   value={settingsForm.overlay_theme}
                   onChange={(e) => setSettingsForm({ ...settingsForm, overlay_theme: e.target.value })}
-                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-cricket-green outline-none transition-all"
                 >
                   <option value="theme1">Theme 1 (Professional Blue)</option>
                   <option value="theme2">Theme 2 (Metallic Dark)</option>
@@ -870,7 +924,7 @@ export const Scorer: React.FC = () => {
 
               <button 
                 onClick={() => updateMatch(settingsForm)}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
+                className="w-full py-3 bg-cricket-green hover:bg-cricket-dark text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-cricket-green/20 transition-all active:scale-95"
               >
                 Save Settings
               </button>
@@ -914,7 +968,7 @@ export const Scorer: React.FC = () => {
                           handleDismissalSubmit();
                         }
                       }}
-                      className="py-3 bg-slate-50 hover:bg-emerald-600 hover:text-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                      className="py-3 bg-slate-50 hover:bg-cricket-green hover:text-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
                     >
                       {type}
                     </button>
@@ -926,7 +980,7 @@ export const Scorer: React.FC = () => {
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fielder</label>
                     <select 
                       onChange={(e) => setDismissalState({ ...dismissalState, fielderId: e.target.value })}
-                      className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
+                      className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-cricket-green outline-none transition-all"
                     >
                       <option value="">Select Fielder</option>
                       {bowlingTeamPlayers.map(p => (
@@ -943,7 +997,7 @@ export const Scorer: React.FC = () => {
                     </button>
                     <button 
                       onClick={handleDismissalSubmit}
-                      className="flex-[2] py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20"
+                      className="flex-[2] py-3 bg-cricket-green text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-cricket-green/20"
                     >
                       Confirm Wicket
                     </button>

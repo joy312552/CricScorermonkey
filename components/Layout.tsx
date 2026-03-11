@@ -62,95 +62,58 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   const navLinks = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, protected: true },
-    { name: 'Live Scores', path: '/matches', icon: PlayCircle, protected: false },
-    { name: 'Tournaments', path: '/tournaments', icon: Trophy, protected: false },
+    { name: 'Build Your League', path: '/tournaments', icon: Trophy, protected: true },
+    { name: 'Create Match', path: '/create-match', icon: PlayCircle, protected: true },
+    { name: 'Control Panel', path: '/dashboard', icon: Settings, protected: true }, // Links to dashboard to select a match
+    { name: 'Graphics Engine', path: '/dashboard', icon: Swords, protected: true }, // Links to dashboard to select a match
+    { name: 'Profile', path: '/profile', icon: User, protected: true },
   ];
 
   const visibleLinks = navLinks.filter(link => !link.protected || (link.protected && user));
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      <nav className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
+    <div className="min-h-screen flex flex-col bg-cricket-gray">
+      <nav className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-50 shadow-sm relative overflow-hidden">
+        {/* Ball rolling animation in header */}
+        <div className="absolute top-0 left-0 w-full h-1 pointer-events-none opacity-20">
+          <div className="w-4 h-4 bg-cricket-green rounded-full animate-ball-roll absolute top-0" />
+        </div>
+        
+        <div className="max-w-7xl mx-auto flex justify-between items-center relative z-10">
           <Link to="/" className="flex items-center gap-2 text-2xl font-black text-slate-900">
-            <div className="bg-emerald-600 p-2 rounded-xl shadow-lg shadow-emerald-600/20">
-              <Trophy className="w-5 h-5 text-white" />
-            </div>
-            <span className="tracking-tighter">Cric<span className="text-emerald-600">Score</span></span>
+            <span className="text-2xl">🏏</span>
+            <span className="tracking-tighter font-display">Blitz Cricket <span className="text-cricket-green">Scorer</span></span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
-            <div className="flex gap-8">
+          <div className="hidden md:flex items-center gap-6">
+            <div className="flex gap-6">
               {visibleLinks.map((link) => (
                 <Link
-                  key={link.path}
+                  key={link.name}
                   to={link.path}
-                  className={`flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] transition-colors ${location.pathname === link.path ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-900'}`}
+                  className={`nav-link text-sm font-semibold tracking-wide ${location.pathname === link.path ? 'text-cricket-green' : 'text-slate-600'}`}
                 >
                   {link.name}
                 </Link>
               ))}
             </div>
 
-            <div className="h-6 w-px bg-slate-200" />
+            <div className="h-6 w-px bg-slate-200 mx-2" />
 
             {user ? (
               <div className="relative" ref={desktopProfileRef}>
                 <button 
-                  onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  aria-label="Open profile menu"
-                  className={`flex items-center gap-3 p-1.5 pr-4 rounded-2xl transition-all duration-300 ${isProfileOpen ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 text-sm font-bold text-red-500 hover:text-red-600 transition-colors"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-black shadow-lg shadow-emerald-600/20">
-                    {user.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="text-left hidden lg:block">
-                    <p className="text-[11px] font-black text-slate-900 leading-none uppercase tracking-widest">{user.name}</p>
-                    <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Official Scorer</p>
-                  </div>
-                  <MoreVertical className="w-4 h-4 ml-2" />
+                  <LogOut className="w-4 h-4" /> Sign Out
                 </button>
-
-                {isProfileOpen && (
-                  <div className="absolute right-0 mt-3 w-64 bg-white border border-slate-200 rounded-[2rem] shadow-2xl py-3 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300 z-[100]">
-                    <div className="px-6 py-4 border-b border-slate-50 mb-2 bg-slate-50/50">
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Authenticated As</p>
-                       <p className="text-sm font-black text-slate-900 truncate">{user.email}</p>
-                       <p className="text-[10px] font-bold text-emerald-600 mt-1 uppercase tracking-widest">@{user.username}</p>
-                    </div>
-                    
-                    <Link 
-                      to="/profile" 
-                      onClick={() => setIsProfileOpen(false)}
-                      className="flex items-center gap-4 px-6 py-3.5 text-[11px] font-black text-slate-600 hover:bg-slate-50 transition-colors uppercase tracking-[0.2em]"
-                    >
-                      <User className="w-4 h-4 text-emerald-600" /> My Profile
-                    </Link>
-                    
-                    <Link 
-                      to="/dashboard" 
-                      onClick={() => setIsProfileOpen(false)}
-                      className="flex items-center gap-4 px-6 py-3.5 text-[11px] font-black text-slate-600 hover:bg-slate-50 transition-colors uppercase tracking-[0.2em]"
-                    >
-                      <LayoutDashboard className="w-4 h-4 text-emerald-600" /> Dashboard
-                    </Link>
-
-                    <div className="h-px bg-slate-50 my-2" />
-                    
-                    <button 
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-4 px-6 py-3.5 text-[11px] font-black text-red-500 hover:bg-red-50 transition-colors uppercase tracking-[0.2em]"
-                    >
-                      <LogOut className="w-4 h-4" /> Sign Out
-                    </button>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="flex items-center gap-4">
-                <Link to="/login" className="text-[11px] font-black text-slate-400 hover:text-slate-900 uppercase tracking-widest">Login</Link>
-                <Button onClick={() => navigate('/signup')} className="px-6 py-2.5 rounded-xl text-[10px]">Create Account</Button>
+                <Link to="/login" className="text-sm font-bold text-slate-600 hover:text-cricket-green transition-colors">Login</Link>
+                <Button onClick={() => navigate('/signup')} className="cricket-button-primary text-sm">Create Account</Button>
               </div>
             )}
           </div>

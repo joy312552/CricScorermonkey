@@ -123,26 +123,26 @@ export const Profile: React.FC = () => {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10 px-4 md:px-8">
+    <div className="min-h-screen bg-cricket-gray py-10 px-4 md:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
         
         {/* Breadcrumb / Back Navigation */}
         <button 
           onClick={() => navigate('/dashboard')}
-          className="text-xs font-black text-slate-400 uppercase tracking-widest hover:text-emerald-600 transition-colors flex items-center gap-2"
+          className="text-xs font-black text-slate-400 uppercase tracking-widest hover:text-cricket-green transition-colors flex items-center gap-2"
         >
           ← Back to Dashboard
         </button>
 
         <header className="space-y-1">
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter">Account Settings</h1>
+          <h1 className="text-4xl font-display font-black text-slate-900 tracking-tighter">Account Settings</h1>
           <p className="text-slate-500 font-medium">Manage your digital official credentials.</p>
         </header>
 
         {/* Global Alert Message */}
         {message.text && (
-          <div className={`p-5 rounded-[1.5rem] border-2 flex items-center gap-4 animate-in slide-in-from-top-4 duration-500 ${
-            message.type === 'error' ? 'bg-red-50 border-red-100 text-red-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700'
+          <div className={`p-5 rounded-2xl border-2 flex items-center gap-4 animate-in slide-in-from-top-4 duration-500 ${
+            message.type === 'error' ? 'bg-red-50 border-red-100 text-red-700' : 'bg-cricket-light border-cricket-green/20 text-cricket-dark'
           }`}>
             {message.type === 'error' ? <AlertCircle className="w-6 h-6 shrink-0" /> : <CheckCircle2 className="w-6 h-6 shrink-0" />}
             <span className="font-bold text-sm">{message.text}</span>
@@ -153,22 +153,22 @@ export const Profile: React.FC = () => {
           
           {/* Sidebar: Profile Summary */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-sm text-center">
+            <div className="cricket-card p-8 text-center">
               <div className="relative inline-block mb-6">
-                 <div className="w-24 h-24 rounded-[2rem] bg-emerald-600 flex items-center justify-center text-white text-4xl font-black shadow-2xl shadow-emerald-200">
+                 <div className="w-24 h-24 rounded-2xl bg-cricket-green flex items-center justify-center text-white text-4xl font-display font-black shadow-lg shadow-cricket-green/20">
                     {user.name.charAt(0).toUpperCase()}
                  </div>
                  <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-slate-900 rounded-full flex items-center justify-center text-white border-4 border-white">
                     <Camera className="w-3.5 h-3.5" />
                  </div>
               </div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">{user.name}</h2>
+              <h2 className="text-2xl font-display font-black text-slate-900 tracking-tight leading-tight">{user.name}</h2>
               <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.2em] mt-2">@{user.username}</p>
               
-              <div className="mt-8 pt-8 border-t border-slate-50 space-y-4">
+              <div className="mt-8 pt-8 border-t border-slate-100 space-y-4">
                  <div className="flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     <span>Account Tier</span>
-                    <span className="text-emerald-600">Pro Official</span>
+                    <span className="text-cricket-green">Pro Official</span>
                  </div>
                  <div className="flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     <span>Verified</span>
@@ -177,19 +177,19 @@ export const Profile: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-slate-900 rounded-[2rem] p-8 text-white">
-               <ShieldCheck className="w-8 h-8 text-emerald-400 mb-4" />
-               <h3 className="text-xl font-black tracking-tight mb-2">Privacy Control</h3>
+            <div className="bg-slate-900 rounded-2xl p-8 text-white shadow-lg">
+               <ShieldCheck className="w-8 h-8 text-cricket-green mb-4" />
+               <h3 className="text-xl font-display font-black tracking-tight mb-2">Privacy Control</h3>
                <p className="text-slate-400 text-xs font-medium leading-relaxed">
                  Your match data and tournament history are encrypted and linked to this unique identity.
                </p>
             </div>
 
             {/* Logout Section in Sidebar Bottom */}
-            <div className="bg-red-50 rounded-[2rem] p-6 border border-red-100">
+            <div className="bg-red-50 rounded-2xl p-6 border border-red-100">
                <button 
                   onClick={handleLogout}
-                  className="w-full py-4 px-4 bg-white hover:bg-red-600 hover:text-white transition-all duration-300 rounded-2xl flex items-center justify-center gap-3 text-sm font-black text-red-600 uppercase tracking-widest shadow-sm"
+                  className="w-full py-4 px-4 bg-white hover:bg-red-600 hover:text-white transition-all duration-300 rounded-xl flex items-center justify-center gap-3 text-sm font-black text-red-600 uppercase tracking-widest shadow-sm"
                >
                   <Power className="w-4 h-4" /> Sign Out
                </button>
@@ -200,10 +200,10 @@ export const Profile: React.FC = () => {
           <div className="lg:col-span-2 space-y-8">
             
             {/* Form: Identity */}
-            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-slate-200 shadow-sm">
-               <div className="flex items-center gap-3 mb-8 pb-6 border-b border-slate-50">
-                  <UserIcon className="w-6 h-6 text-emerald-600" />
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Identity Settings</h3>
+            <section className="cricket-card p-8 md:p-10">
+               <div className="flex items-center gap-3 mb-8 pb-6 border-b border-slate-100">
+                  <UserIcon className="w-6 h-6 text-cricket-green" />
+                  <h3 className="text-xl font-display font-black text-slate-900 tracking-tight">Identity Settings</h3>
                </div>
                
                <form onSubmit={handleUpdateIdentity} className="space-y-6">
@@ -223,17 +223,17 @@ export const Profile: React.FC = () => {
                       required
                     />
                   </div>
-                  <Button type="submit" loading={loading} className="px-10 py-4">
-                    <Save className="w-4 h-4" /> Update Identity
+                  <Button type="submit" loading={loading} className="cricket-button-primary px-10 py-4">
+                    <Save className="w-4 h-4 mr-2 inline-block" /> Update Identity
                   </Button>
                </form>
             </section>
 
             {/* Form: Email & Security */}
-            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-slate-200 shadow-sm">
-               <div className="flex items-center gap-3 mb-8 pb-6 border-b border-slate-50">
-                  <Key className="w-6 h-6 text-emerald-600" />
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Access & Security</h3>
+            <section className="cricket-card p-8 md:p-10">
+               <div className="flex items-center gap-3 mb-8 pb-6 border-b border-slate-100">
+                  <Key className="w-6 h-6 text-cricket-green" />
+                  <h3 className="text-xl font-display font-black text-slate-900 tracking-tight">Access & Security</h3>
                </div>
 
                {/* Email Block */}
@@ -254,13 +254,13 @@ export const Profile: React.FC = () => {
                         placeholder="new@example.com"
                       />
                     </div>
-                    <Button type="submit" variant="outline" loading={loading} className="whitespace-nowrap h-[58px] px-8">
+                    <Button type="submit" variant="outline" loading={loading} className="whitespace-nowrap h-[58px] px-8 rounded-xl border-2 border-slate-200 hover:border-cricket-green hover:text-cricket-green hover:bg-cricket-light">
                       Change Email
                     </Button>
                  </form>
                </div>
 
-               <div className="h-px bg-slate-50 w-full mb-10" />
+               <div className="h-px bg-slate-100 w-full mb-10" />
 
                {/* Password Block */}
                <div>
@@ -280,7 +280,7 @@ export const Profile: React.FC = () => {
                         placeholder="Enter new secure password"
                       />
                     </div>
-                    <Button type="submit" variant="outline" loading={loading} className="whitespace-nowrap h-[58px] px-8">
+                    <Button type="submit" variant="outline" loading={loading} className="whitespace-nowrap h-[58px] px-8 rounded-xl border-2 border-slate-200 hover:border-cricket-green hover:text-cricket-green hover:bg-cricket-light">
                       Update Password
                     </Button>
                  </form>
