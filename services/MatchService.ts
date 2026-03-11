@@ -286,10 +286,21 @@ export const MatchService = {
     return updatedMatch as Match;
   },
 
+  async updateTeamName(teamId: string, newName: string) {
+    const { error } = await supabase
+      .from('teams')
+      .update({ name: newName })
+      .eq('id', teamId);
+    if (error) throw error;
+  },
+
   async updateMatchPlayers(matchId: string, updates: Partial<Match>) {
+    // Filter out virtual fields that don't exist in the database
+    const { team_a_name, team_b_name, tournament_name, ...validUpdates } = updates as any;
+    
     const { data, error } = await supabase
       .from('matches')
-      .update(updates)
+      .update(validUpdates)
       .eq('id', matchId)
       .select()
       .single();
@@ -297,19 +308,23 @@ export const MatchService = {
     return data as Match;
   },
 
-  async undoLastBall(matchId: string) {
-    // 1. Get last ball
-    const { data: lastBall, error: ballFetchError } = await supabase
-      .from('ball_events')
-      .select('*')
-      .eq('match_id', matchId)
-      .order('created_at', { ascending: false })
-      .limit(1)
+  async updateToss(matchId: string, tossWinnerId: string, tossChoice: 'bat' | 'bowl') {
+    const { data, error } = await supabase
+      .from('matches')
+      .update({ 
+        toss_winner_id: tossWinnerId,
+        toss_choice: tossChoice
+      })
+      .eq('id', matchId)
+      .select()
       .single();
+    
+    if (error) throw error;
+    return data as Match;
+  },
 
-    if (ballFetchError || !lastBall) return;
-
-    // 2. Get match
+  async undoLastBall(matchId: string) {
+    // 1. Get match first to know current innings
     const { data: match, error: matchFetchError } = await supabase
       .from('matches')
       .select('*')
@@ -317,6 +332,18 @@ export const MatchService = {
       .single();
 
     if (matchFetchError || !match) return;
+
+    // 2. Get last ball for current innings
+    const { data: lastBall, error: ballFetchError } = await supabase
+      .from('ball_events')
+      .select('*')
+      .eq('match_id', matchId)
+      .eq('innings', match.current_innings || 1)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (ballFetchError || !lastBall) return;
 
     const isLegalBall = !['wd', 'nb'].includes(lastBall.extra_type || '');
     const prevBalls = isLegalBall ? Math.max(0, (match.balls || 0) - 1) : (match.balls || 0);
@@ -420,22 +447,37 @@ export const MatchService = {
   },
 
   async sendOverlayCommand(matchId: string, command: string, payload: any = {}) {
+    const { data: existing } = await supabase
+      .from('overlay_commands')
+      .select('id')
+      .eq('match_id', matchId)
+      .maybeSingle();
+
     const { data: { user } } = await supabase.auth.getUser();
     
-    let commandError;
-    if (user) {
+    if (existing) {
+      const { error } = await supabase
+        .from('overlay_commands')
+        .update({
+          command,
+          payload,
+          visible: true,
+          created_at: new Date().toISOString()
+        })
+        .eq('id', existing.id);
+      if (error) throw error;
+    } else {
       const { error } = await supabase
         .from('overlay_commands')
         .insert([{
           match_id: matchId,
-          user_id: user.id,
+          user_id: user?.id,
           command,
           payload,
           visible: true
         }]);
-      commandError = error;
-
-      if (commandError && commandError.message.includes("Could not find the 'user_id' column")) {
+      
+      if (error && error.message.includes("Could not find the 'user_id' column")) {
         const { error: fallbackError } = await supabase
           .from('overlay_commands')
           .insert([{
@@ -444,21 +486,11 @@ export const MatchService = {
             payload,
             visible: true
           }]);
-        commandError = fallbackError;
+        if (fallbackError) throw fallbackError;
+      } else if (error) {
+        throw error;
       }
-    } else {
-      const { error } = await supabase
-        .from('overlay_commands')
-        .insert([{
-          match_id: matchId,
-          command,
-          payload,
-          visible: true
-        }]);
-      commandError = error;
     }
-
-    if (commandError) throw commandError;
   },
 
   async hideOverlay(matchId: string) {
@@ -476,6 +508,19 @@ export const MatchService = {
       .order('created_at', { ascending: true });
     if (error) throw error;
     return data as BallEvent[];
+  },
+
+  async getLatestOverlayCommand(matchId: string): Promise<OverlayCommand | null> {
+    const { data, error } = await supabase
+      .from('overlay_commands')
+      .select('*')
+      .eq('match_id', matchId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (error || !data) return null;
+    return data as OverlayCommand;
   },
 
   async deleteMatch(matchId: string) {

@@ -55,7 +55,9 @@ export const Scorer: React.FC = () => {
     match_overs: 20,
     target: 0,
     venue: '',
-    overlay_theme: 'default'
+    overlay_theme: 'default',
+    toss_winner_id: '',
+    toss_choice: 'bat' as 'bat' | 'bowl'
   });
 
   useEffect(() => {
@@ -66,7 +68,9 @@ export const Scorer: React.FC = () => {
         match_overs: match.match_overs || 20,
         target: match.target || 0,
         venue: match.venue || '',
-        overlay_theme: match.overlay_theme || 'default'
+        overlay_theme: match.overlay_theme || 'default',
+        toss_winner_id: match.toss_winner_id || '',
+        toss_choice: (match.toss_choice as 'bat' | 'bowl') || 'bat'
       });
 
       // Load players for the teams
@@ -87,10 +91,28 @@ export const Scorer: React.FC = () => {
     }
   }, [match?.id, match?.current_innings]);
 
-  const updateMatch = async (updates: Partial<Match>) => {
+  const updateMatch = async (updates: any) => {
     if (!match) return;
     setIsProcessing(true);
     try {
+      // Handle Team Name Updates
+      if (updates.team_a_name && updates.team_a_name !== match.team_a_name && match.team_a_id) {
+        await MatchService.updateTeamName(match.team_a_id, updates.team_a_name);
+      }
+      if (updates.team_b_name && updates.team_b_name !== match.team_b_name && match.team_b_id) {
+        await MatchService.updateTeamName(match.team_b_id, updates.team_b_name);
+      }
+
+      // Handle Toss Update
+      if (updates.toss_winner_id || updates.toss_choice) {
+        await MatchService.updateToss(
+          match.id, 
+          updates.toss_winner_id || match.toss_winner_id || '', 
+          (updates.toss_choice || match.toss_choice || 'bat') as 'bat' | 'bowl'
+        );
+      }
+
+      // Handle other match updates
       await MatchService.updateMatchPlayers(match.id, updates);
       setActiveModal(null);
     } catch (err) {
@@ -153,6 +175,22 @@ export const Scorer: React.FC = () => {
       return;
     }
 
+    // Optimistic Update
+    const isLegalBall = !['wd', 'nb'].includes(extraType || '');
+    const nextBalls = isLegalBall ? (match.balls || 0) + 1 : (match.balls || 0);
+    const completedOvers = Math.floor(nextBalls / 6);
+    const remainingBalls = nextBalls % 6;
+    const nextOvers = parseFloat(`${completedOvers}.${remainingBalls}`);
+
+    const optimisticMatch = {
+      ...match,
+      runs: (match.runs || 0) + runs,
+      wickets: (match.wickets || 0) + (isWicket ? 1 : 0),
+      balls: nextBalls,
+      overs: nextOvers,
+    };
+    setMatch(optimisticMatch);
+
     setIsProcessing(true);
     setIsDebouncing(true);
 
@@ -160,6 +198,8 @@ export const Scorer: React.FC = () => {
       await MatchService.recordBall(match.id, runs, false, extraType);
     } catch (err: any) {
       console.error('Scoring error:', err);
+      // Rollback
+      setMatch(remoteMatch);
       alert(`Scoring failed: ${err.message || 'Unknown error'}`);
     } finally {
       setIsProcessing(false);
@@ -170,6 +210,20 @@ export const Scorer: React.FC = () => {
   const handleDismissalSubmit = async () => {
     if (!match || !dismissalState.type) return;
     
+    // Optimistic Update
+    const nextBalls = (match.balls || 0) + 1;
+    const completedOvers = Math.floor(nextBalls / 6);
+    const remainingBalls = nextBalls % 6;
+    const nextOvers = parseFloat(`${completedOvers}.${remainingBalls}`);
+
+    const optimisticMatch = {
+      ...match,
+      wickets: (match.wickets || 0) + 1,
+      balls: nextBalls,
+      overs: nextOvers,
+    };
+    setMatch(optimisticMatch);
+
     setIsProcessing(true);
     try {
       await MatchService.recordBall(
@@ -183,6 +237,8 @@ export const Scorer: React.FC = () => {
       setActiveModal(null);
     } catch (err) {
       console.error('Dismissal error:', err);
+      // Rollback
+      setMatch(remoteMatch);
     } finally {
       setIsProcessing(false);
     }
@@ -230,6 +286,15 @@ export const Scorer: React.FC = () => {
 
   const sendCommand = async (command: string, payload: any = {}) => {
     try {
+      // For default scoreboard, we always want to show it (no toggle) to fix the bug reported
+      if (command === 'DEFAULT_SCOREBOARD') {
+        // First hide everything to ensure a clean state
+        await MatchService.hideOverlay(match.id);
+        // Then send the default command
+        await MatchService.sendOverlayCommand(match.id, command, payload);
+        return;
+      }
+
       if (overlayCommand?.visible && overlayCommand.command === command) {
         await MatchService.hideOverlay(match.id);
       } else {
@@ -250,20 +315,25 @@ export const Scorer: React.FC = () => {
 
   const graphicsButtons = [
     { label: 'DEFAULT', cmd: 'DEFAULT_SCOREBOARD' },
+    { label: 'INTRO', cmd: 'TEAM_VS_TEAM' },
     { label: 'TEAM VS', cmd: 'TEAM_VS' },
     { label: 'SUMMARY', cmd: 'MATCH_SUMMARY' },
     { label: 'PLAYING XI', cmd: 'PLAYING_XI' },
     { label: 'BATT CARD', cmd: 'BATT_SUMMARY' },
-    { label: 'Bowling card', cmd: 'BALL_SUMMARY' },
+    { label: 'BALL CARD', cmd: 'BALL_SUMMARY' },
     { label: 'TARGET', cmd: 'TARGET' },
     { label: 'NEED', cmd: 'NEED_RUN' },
     { label: 'PARTNERSHIP', cmd: 'PARTNERSHIP' },
     { label: 'TOSS', cmd: 'TOSS_WINNER' },
     { label: 'BOUNDARIES', cmd: 'BOUNDARY_TRACKER' },
+    { label: 'CRR', cmd: 'SHOW_CRR' },
+    { label: 'EXTRAS', cmd: 'SHOW_EXTRA' },
   ];
 
   const isBoundaryTrackerActive = overlayCommand?.visible && overlayCommand.command === 'BOUNDARY_TRACKER';
-  const isInningsCompleted = match.wickets >= 10 || (match.overs >= (match.match_overs || 20));
+  const isInningsCompleted = match.wickets >= 10 || 
+                             (match.overs >= (match.match_overs || 20)) || 
+                             (match.current_innings === 2 && match.target && match.runs >= match.target);
 
   return (
     <div className="h-screen w-screen bg-cricket-light text-slate-900 font-sans overflow-hidden flex flex-col">
@@ -325,8 +395,18 @@ export const Scorer: React.FC = () => {
         {/* Centered Scoreboard */}
         <div className="relative z-20 text-center bg-emerald-50 px-4 sm:px-6 py-2 rounded-2xl border border-emerald-100 shadow-sm">
           {isInningsCompleted ? (
-            <div className="bg-red-600 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse shadow-lg shadow-red-600/20">
-              Innings Completed
+            <div className="flex flex-col items-center gap-2">
+              <div className="bg-red-600 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse shadow-lg shadow-red-600/20">
+                {match.current_innings === 2 ? 'Match Completed' : 'Innings Completed'}
+              </div>
+              {match.current_innings === 1 && (
+                <button 
+                  onClick={handleNextInnings}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg transition-all active:scale-95 flex items-center gap-2"
+                >
+                  <ArrowRightCircle className="w-3 h-3" /> Start 2nd Innings
+                </button>
+              )}
             </div>
           ) : (
             <>
@@ -355,14 +435,14 @@ export const Scorer: React.FC = () => {
       <div className="flex-1 flex flex-col p-3 gap-3 overflow-hidden bg-white">
         
         {/* Scoring Engine */}
-        <div className={`flex flex-col gap-3 min-h-0 ${isInningsCompleted ? 'opacity-50 pointer-events-none' : ''}`}>
+        <div className="flex flex-col gap-3 min-h-0">
           <div className="flex items-center gap-2 px-1">
             <Zap className="w-3 h-3 text-emerald-600" />
             <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Scoring Engine</span>
           </div>
           
           {/* Runs Grid */}
-          <div className="grid grid-cols-8 gap-1.5 shrink-0">
+          <div className={`grid grid-cols-8 gap-1.5 shrink-0 ${isInningsCompleted ? 'opacity-50 pointer-events-none' : ''}`}>
             {scoreButtons.map((runs) => (
               <button
                 key={runs}
@@ -383,7 +463,7 @@ export const Scorer: React.FC = () => {
           </div>
 
           {/* Extras Grid */}
-          <div className="grid grid-cols-4 gap-1.5 shrink-0">
+          <div className={`grid grid-cols-4 gap-1.5 shrink-0 ${isInningsCompleted ? 'opacity-50 pointer-events-none' : ''}`}>
             {extraButtons.map((btn) => (
               <button
                 key={btn.label}
@@ -398,19 +478,19 @@ export const Scorer: React.FC = () => {
 
           {/* Utility Row */}
           <div className="grid grid-cols-5 gap-1.5 shrink-0">
-            <button onClick={handleUndo} className="py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95">
+            <button onClick={handleUndo} disabled={isProcessing} className="py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95 disabled:opacity-50">
               <Undo2 className="w-3 h-3" /> Undo
             </button>
-            <button onClick={handleNextInnings} className="py-2 bg-white border border-slate-200 hover:bg-slate-50 text-blue-500 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95">
+            <button onClick={handleNextInnings} disabled={isProcessing} className={`py-2 bg-white border border-slate-200 hover:bg-slate-50 text-blue-500 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95 disabled:opacity-50 ${isInningsCompleted ? 'opacity-50 pointer-events-none' : ''}`}>
               <ArrowRightCircle className="w-3 h-3" /> Next
             </button>
-            <button onClick={() => setActiveModal('batter')} className="py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-sm transition-all active:scale-95">
+            <button onClick={() => setActiveModal('batter')} disabled={isProcessing} className={`py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-sm transition-all active:scale-95 disabled:opacity-50 ${isInningsCompleted ? 'opacity-50 pointer-events-none' : ''}`}>
               Batter
             </button>
-            <button onClick={() => setActiveModal('bowler')} className="py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-sm transition-all active:scale-95">
+            <button onClick={() => setActiveModal('bowler')} disabled={isProcessing} className={`py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-sm transition-all active:scale-95 disabled:opacity-50 ${isInningsCompleted ? 'opacity-50 pointer-events-none' : ''}`}>
               Bowler
             </button>
-            <button onClick={() => setActiveModal('settings')} className="py-2 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95">
+            <button onClick={() => setActiveModal('settings')} disabled={isProcessing} className="py-2 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95 disabled:opacity-50">
               <Settings className="w-3 h-3" /> Settings
             </button>
           </div>
@@ -747,6 +827,45 @@ export const Scorer: React.FC = () => {
                   onChange={(e) => setSettingsForm({ ...settingsForm, venue: e.target.value })}
                   className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Toss Winner</label>
+                  <select 
+                    value={settingsForm.toss_winner_id}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, toss_winner_id: e.target.value })}
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
+                  >
+                    <option value="">Select Team</option>
+                    <option value={match.team_a_id}>{match.team_a_name}</option>
+                    <option value={match.team_b_id}>{match.team_b_name}</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Toss Choice</label>
+                  <select 
+                    value={settingsForm.toss_choice}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, toss_choice: e.target.value as 'bat' | 'bowl' })}
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
+                  >
+                    <option value="bat">Batting</option>
+                    <option value="bowl">Bowling</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Overlay Theme</label>
+                <select 
+                  value={settingsForm.overlay_theme}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, overlay_theme: e.target.value })}
+                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900"
+                >
+                  <option value="theme1">Theme 1 (Professional Blue)</option>
+                  <option value="theme2">Theme 2 (Metallic Dark)</option>
+                  <option value="theme3">Theme 3 (Modern Glass)</option>
+                </select>
               </div>
 
               <button 

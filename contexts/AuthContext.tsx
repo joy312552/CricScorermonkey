@@ -83,21 +83,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let isMounted = true;
 
     const initializeAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (isMounted) {
-          if (session?.user) {
-            const profile = await fetchProfile(session.user.id, session.user.email || '');
-            setUser(profile);
+      let retries = 3;
+      while (retries >= 0) {
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error) throw error;
+          
+          if (isMounted) {
+            if (session?.user) {
+              const profile = await fetchProfile(session.user.id, session.user.email || '');
+              setUser(profile);
+            } else {
+              setUser(null);
+            }
+          }
+          break; // Success, exit loop
+        } catch (err: any) {
+          const isLockError = err?.message?.includes('Lock broken') || err?.message?.includes('steal');
+          if (isLockError && retries > 0) {
+            console.warn(`Auth lock issue, retrying... (${retries} attempts left)`);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            retries--;
           } else {
-            setUser(null);
+            if (!isLockError) {
+              console.error("Auth initialization failed:", err);
+            }
+            break; // Non-lock error or out of retries, exit loop
           }
         }
-      } catch (err) {
-        console.error("Auth initialization failed:", err);
-      } finally {
-        if (isMounted) setLoading(false);
       }
+      if (isMounted) setLoading(false);
     };
 
     initializeAuth();

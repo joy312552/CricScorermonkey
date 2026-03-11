@@ -14,10 +14,14 @@ export const useMatchRealTime = (matchId: string | undefined) => {
 
     const init = async () => {
       try {
-        const data = await MatchService.getMatchById(matchId);
-        if (data) setMatch(data);
+        const [matchData, overlayData] = await Promise.all([
+          MatchService.getMatchById(matchId),
+          MatchService.getLatestOverlayCommand(matchId)
+        ]);
+        if (matchData) setMatch(matchData);
+        if (overlayData) setOverlayCommand(overlayData);
       } catch (err) {
-        console.error('Error fetching match:', err);
+        console.error('Error fetching match data:', err);
       } finally {
         setLoading(false);
       }
